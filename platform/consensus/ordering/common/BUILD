@@ -27,3 +27,73 @@ cc_library(
         "//platform/proto:resdb_cc_proto",
     ],
 )
+
+cc_library(
+    name = "atomic_unique_ptr",
+    hdrs = ["atomic_unique_ptr.h"],
+)
+
+cc_library(
+    name = "message_manager_basic",
+    srcs = ["message_manager_basic.cpp"],
+    hdrs = ["message_manager_basic.h"],
+    deps = [
+        "//executor/common:transaction_manager",
+        "//platform/common/queue:lock_free_queue",
+        "//platform/config:resdb_config",
+        "//platform/consensus/execution:system_info",
+        "//platform/consensus/execution:transaction_executor",
+        "//platform/proto:resdb_cc_proto",
+    ],
+)
+
+cc_library(
+    name = "commitment_basic",
+    srcs = ["commitment_basic.cpp"],
+    hdrs = ["commitment_basic.h"],
+    deps = [
+        ":message_manager_basic",
+        "//common/crypto:signature_verifier",
+        "//common/utils",
+        "//platform/config:resdb_config",
+        "//platform/networkstrate:replica_communicator",
+        "//platform/networkstrate:server_comm",
+        "//platform/statistic:stats",
+    ],
+)
+
+cc_library(
+    name = "response_manager",
+    srcs = ["response_manager.cpp"],
+    hdrs = ["response_manager.h"],
+    deps = [
+        ":transaction_utils",
+        "//common/crypto:signature_verifier",
+        "//common/utils",
+        "//platform/common/queue:lock_free_queue",
+        "//platform/config:resdb_config",
+        "//platform/consensus/execution:system_info",
+        "//platform/networkstrate:replica_communicator",
+        "//platform/networkstrate:server_comm",
+        "//platform/proto:resdb_cc_proto",
+        "//platform/statistic:stats",
+    ],
+)
+
+cc_library(
+    name = "performance_manager",
+    srcs = ["performance_manager.cpp"],
+    hdrs = ["performance_manager.h"],
+    deps = [
+        ":transaction_utils",
+        "//common/crypto:signature_verifier",
+        "//common/utils",
+        "//platform/common/queue:lock_free_queue",
+        "//platform/config:resdb_config",
+        "//platform/consensus/execution:system_info",
+        "//platform/networkstrate:replica_communicator",
+        "//platform/networkstrate:server_comm",
+        "//platform/proto:resdb_cc_proto",
+        "//platform/statistic:stats",
+    ],
+)
