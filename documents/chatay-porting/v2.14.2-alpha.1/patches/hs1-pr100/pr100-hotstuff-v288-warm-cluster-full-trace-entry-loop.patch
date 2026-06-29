@@ -1,0 +1,125 @@
+diff --git a/platform/consensus/ordering/hotstuff/commitment.cpp b/platform/consensus/ordering/hotstuff/commitment.cpp
+--- a/platform/consensus/ordering/hotstuff/commitment.cpp
++++ b/platform/consensus/ordering/hotstuff/commitment.cpp
+@@ -26,6 +26,7 @@
+ 
+ #include <glog/logging.h>
+ #include <unistd.h>
++#include <thread>
+ 
+ #include "common/utils/utils.h"
+ 
+@@ -193,27 +194,51 @@ int Commitment::ProcessNewRequest(std::unique_ptr<HotStuffRequest> request) {
+   request->mutable_node()->mutable_info()->set_hash(
+       SignatureVerifier::CalculateHash(request->node().data()));
+   global_stats_->IncClientRequest();
++  const bool queue_empty_before = request_list_.Empty();
+   LOG(ERROR) << "CHATAY_HS1_TRACE new_request_queued"
+              << " self=" << id_
+              << " request_view=" << request->view()
+              << " node_view=" << request->node().info().view()
++             << " current_view=" << current_view_
++             << " primary_current=" << PrimaryId(current_view_)
++             << " queue_empty_before=" << queue_empty_before
+              << " proxy=" << request->node().proxy_id()
+              << " data_size=" << request->node().data().size()
+              << " hash=" << request->node().info().hash();
+   request_list_.Push(std::move(request));
++  LOG(ERROR) << "CHATAY_HS1_TRACE new_request_push_done"
++             << " self=" << id_
++             << " current_view=" << current_view_
++             << " queue_empty_after=" << request_list_.Empty();
+   return 0;
+ }
+ 
+ std::unique_ptr<HotStuffRequest> Commitment::GetClientRequest() {
++  int64_t wait_loops = 0;
++  const int64_t wait_ms = config_.ClientBatchWaitTimeMS();
+   while (!stop_) {
+-    auto request = request_list_.Pop(config_.ClientBatchWaitTimeMS());
++    const bool queue_empty_before = request_list_.Empty();
++    auto request = request_list_.Pop(wait_ms);
+     if (request == nullptr) {
++      wait_loops++;
++      if (wait_loops == 1 || wait_loops % 50 == 0) {
++        LOG(ERROR) << "CHATAY_HS1_TRACE client_request_wait_timeout"
++                   << " self=" << id_
++                   << " current_view=" << current_view_
++                   << " wait_ms=" << wait_ms
++                   << " wait_loops=" << wait_loops
++                   << " queue_empty_before=" << queue_empty_before
++                   << " queue_empty_after=" << request_list_.Empty();
++      }
+       continue;
+     }
+     LOG(ERROR) << "CHATAY_HS1_TRACE client_request_dequeued"
+                << " self=" << id_
+                << " request_view=" << request->view()
+                << " node_view=" << request->node().info().view()
++               << " current_view=" << current_view_
++               << " wait_loops=" << wait_loops
++               << " queue_empty_after=" << request_list_.Empty()
+                << " proxy=" << request->node().proxy_id()
+                << " data_size=" << request->node().data().size();
+     return request;
+@@ -267,9 +292,19 @@ int Commitment::ProcessNewView(int64_t view_number) {
+     LOG(ERROR) << "not current primary:" << view_number;
+     return -2;
+   }
++  LOG(ERROR) << "CHATAY_HS1_TRACE process_newview_waiting_request"
++             << " self=" << id_
++             << " view=" << view_number
++             << " current_view=" << current_view_
++             << " queue_empty_before=" << request_list_.Empty();
+   auto user_request = GetClientRequest();
+   if (user_request == nullptr) {
+-    LOG(ERROR) << "data is empty";
++    LOG(ERROR) << "CHATAY_HS1_TRACE process_newview_no_request"
++               << " self=" << id_
++               << " view=" << view_number
++               << " current_view=" << current_view_
++               << " queue_empty_after=" << request_list_.Empty();
++    LOG(ERROR) << "data is empty";
+     return -2;
+   }
+   QC high_qc = GetHighQC(view_number - 1);
+@@ -565,7 +600,39 @@ int Commitment::ProcessMessageOnReplica(
+                << " view=" << request->qc().node().info().view()
+                << " proxy=" << request->qc().node().proxy_id()
+                << " data_size=" << request->qc().node().data().size();
++    if (id_ == 1) {
++      const int64_t replica_count = config_.GetReplicaInfos().size();
++      const int64_t next_view = current_view_ + replica_count;
++      LOG(ERROR) << "CHATAY_HS1_TRACE warm_cluster_entry_loop_evaluate"
++                 << " self=" << id_
++                 << " current_view=" << current_view_
++                 << " decided_view=" << request->qc().node().info().view()
++                 << " next_view=" << next_view
++                 << " expected_primary=" << PrimaryId(next_view)
++                 << " replica_count=" << replica_count
++                 << " queue_empty_before=" << request_list_.Empty();
++      std::thread([this, next_view, replica_count]() {
++        const int64_t view_slot = next_view % 128;
++        {
++          std::unique_lock<std::mutex> lk(mutex_[view_slot]);
++          received_senders_[view_slot].clear();
++          received_requests_[view_slot].clear();
++        }
++        LOG(ERROR) << "CHATAY_HS1_TRACE warm_cluster_entry_loop_start"
++                   << " self=" << id_
++                   << " view=" << next_view
++                   << " expected_primary=" << PrimaryId(next_view)
++                   << " replica_count=" << replica_count
++                   << " queue_empty_before_process=" << request_list_.Empty();
++        const int ret = ProcessNewView(next_view);
++        LOG(ERROR) << "CHATAY_HS1_TRACE warm_cluster_entry_loop_finish"
++                   << " self=" << id_
++                   << " view=" << next_view
++                   << " ret=" << ret
++                   << " queue_empty_after_process=" << request_list_.Empty();
++      }).detach();
++    }
+     message_manager_->Commit(std::move(request));
+   } else {
+     // For prepare, send back the new node in qc. Then every message in the
+     // future, the new node will be included in QC.

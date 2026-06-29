@@ -1,0 +1,37 @@
+diff --git a/platform/consensus/ordering/hotstuff/commitment.cpp b/platform/consensus/ordering/hotstuff/commitment.cpp
+index 9d8ab9d..0b3a45e 100644
+--- a/platform/consensus/ordering/hotstuff/commitment.cpp
++++ b/platform/consensus/ordering/hotstuff/commitment.cpp
+@@ -51,5 +51,6 @@ void Commitment::Init() {
+              << " current_view=" << current_view_
+              << " primary_next=" << PrimaryId(current_view_ + 1)
+              << " quorum=" << config_.GetMinDataReceiveNum();
++  sleep(2);
+   SendNewView();
+ }
+diff --git a/platform/consensus/ordering/hotstuff/consensus.cpp b/platform/consensus/ordering/hotstuff/consensus.cpp
+index c6541cd..d5047d2 100644
+--- a/platform/consensus/ordering/hotstuff/consensus.cpp
++++ b/platform/consensus/ordering/hotstuff/consensus.cpp
+@@ -90,7 +90,20 @@ int Consensus::ConsensusCommit(std::unique_ptr<Context> context,
+       return response_manager_->ProcessResponseMsg(std::move(context),
+                                                    std::move(request));
+     case Request::TYPE_NEW_TXNS:
+-      return commitment_->ProcessNewRequest(Decode(*request));
++    {
++      auto hotstuff_request = std::make_unique<HotStuffRequest>();
++      hotstuff_request->mutable_node()->set_data(request->data());
++      hotstuff_request->mutable_node()->set_proxy_id(request->proxy_id());
++      hotstuff_request->set_sender_id(request->sender_id());
++      hotstuff_request->set_view(0);
++      LOG(ERROR) << "CHATAY_HS1_TRACE wrap_new_txns"
++                 << " self=" << config_.GetSelfInfo().id()
++                 << " sender=" << request->sender_id()
++                 << " proxy=" << request->proxy_id()
++                 << " data_size=" << request->data().size()
++                 << " hash=" << request->hash();
++      return commitment_->ProcessNewRequest(std::move(hotstuff_request));
++    }
+     default:
+       return commitment_->Process(Decode(*request));
+   }

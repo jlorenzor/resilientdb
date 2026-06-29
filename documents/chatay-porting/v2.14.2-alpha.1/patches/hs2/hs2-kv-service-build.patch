@@ -1,0 +1,69 @@
+diff --git a/benchmark/protocols/hs2/BUILD b/benchmark/protocols/hs2/BUILD
+index 9ed77c0..90b95f6 100644
+--- a/benchmark/protocols/hs2/BUILD
++++ b/benchmark/protocols/hs2/BUILD
+@@ -22,3 +22,17 @@ cc_binary(
+         "//platform/consensus/ordering/hs2:consensus_manager_hs2",
+     ],
+ )
++
++cc_binary(
++    name = "kv_service",
++    srcs = ["kv_service.cpp"],
++    deps = [
++        "//chain/state:chain_state",
++        "//executor/kv:kv_executor",
++        "//platform/config:resdb_config_utils",
++        "//platform/consensus/ordering/hs2:consensus_manager_hs2",
++        "//platform/networkstrate:service_network",
++    ],
++    visibility = [
++        "//visibility:public",
++    ],
++)
+diff --git a/benchmark/protocols/hs2/kv_service.cpp b/benchmark/protocols/hs2/kv_service.cpp
+new file mode 100644
+index 0000000..9f77515
+--- /dev/null
++++ b/benchmark/protocols/hs2/kv_service.cpp
+@@ -0,0 +1,50 @@
++#include <cstdio>
++#include <cstdlib>
++#include <memory>
++
++#include "chain/state/chain_state.h"
++#include "executor/kv/kv_executor.h"
++#include "platform/config/resdb_config_utils.h"
++#include "platform/consensus/ordering/hs2/consensus_manager_hs2.h"
++#include "platform/networkstrate/service_network.h"
++
++using namespace resdb;
++
++namespace {
++
++void ShowUsage() {
++  printf("<config> <private_key> <cert_file> [logging_dir]\n");
++}
++
++}  // namespace
++
++int main(int argc, char** argv) {
++  if (argc < 4) {
++    ShowUsage();
++    exit(0);
++  }
++
++  char* config_file = argv[1];
++  char* private_key_file = argv[2];
++  char* cert_file = argv[3];
++
++  std::unique_ptr<ResDBConfig> config =
++      GenerateResDBConfig(config_file, private_key_file, cert_file);
++
++  auto consensus = std::make_unique<hs2::ConsensusManagerHs2>(
++      *config, std::make_unique<KVExecutor>(std::make_unique<ChainState>()));
++
++  auto server =
++      std::make_unique<ServiceNetwork>(*config, std::move(consensus));
++  server->Run();
++}

@@ -1,0 +1,32 @@
+diff --git a/platform/consensus/ordering/hotstuff/commitment.cpp b/platform/consensus/ordering/hotstuff/commitment.cpp
+index 7d315f8..a9b15c1 100644
+--- a/platform/consensus/ordering/hotstuff/commitment.cpp
++++ b/platform/consensus/ordering/hotstuff/commitment.cpp
+@@ -51,6 +51,12 @@ void Commitment::Init() {
+              << " current_view=" << current_view_
+              << " primary_next=" << PrimaryId(current_view_ + 1)
+              << " quorum=" << config_.GetMinDataReceiveNum();
+-  sleep(3);
++  // Chatay HS1 v2.11.3-beta.2:
++  // PR100 can emit NEWVIEW before all local key material / replica channels
++  // are usable in a cold local bootstrap. This delay only widens bootstrap
++  // readiness; it does not change quorum, locking, QC, or vote validation.
++  LOG(ERROR) << "CHATAY_HS1_TRACE newview_bootstrap_wait self=" << id_
++             << " seconds=6";
++  sleep(6);
+   SendNewView();
+ }
+@@ -238,10 +244,10 @@ void Commitment::SendNewView() {
+              << " target_primary=" << PrimaryId(current_view_)
+              << " prepare_qc_view=" << prepare_qc.node().info().view()
+              << " prepare_qc_sigs=" << prepare_qc.signatures_size();
+-  for (int attempt = 1; attempt <= 3; ++attempt) {
++  for (int attempt = 1; attempt <= 8; ++attempt) {
+     if (attempt > 1) {
+-      sleep(3);
++      sleep(2);
+     }
+     LOG(ERROR) << "CHATAY_HS1_TRACE send_newview_attempt"
+                << " self=" << id_
+               << " attempt=" << attempt
+               << " target_primary=" << PrimaryId(current_view_);

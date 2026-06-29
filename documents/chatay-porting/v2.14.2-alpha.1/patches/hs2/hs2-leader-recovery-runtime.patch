@@ -1,0 +1,235 @@
+diff --git a/platform/consensus/ordering/common/response_manager.cpp b/platform/consensus/ordering/common/response_manager.cpp
+index 47ade45..ac8d6a2 100644
+--- a/platform/consensus/ordering/common/response_manager.cpp
++++ b/platform/consensus/ordering/common/response_manager.cpp
+@@ -24,6 +24,8 @@
+ 
+ #include "platform/consensus/ordering/common/response_manager.h"
+ 
++#include <algorithm>
++#include <set>
++
+ #include <glog/logging.h>
+ 
+ #include "common/utils/utils.h"
+@@ -86,6 +88,18 @@ int ResponseManager::NewUserRequest(std::unique_ptr<Context> context,
+                                     std::unique_ptr<Request> user_request) {
++  return QueueUserRequest(std::move(context), std::move(user_request), {});
++}
++
++int ResponseManager::NewUserRequestWithFallbackViews(
++    std::unique_ptr<Context> context, std::unique_ptr<Request> user_request,
++    const std::vector<uint64_t>& fallback_views) {
++  return QueueUserRequest(std::move(context), std::move(user_request),
++                          fallback_views);
++}
++
++int ResponseManager::QueueUserRequest(
++    std::unique_ptr<Context> context, std::unique_ptr<Request> user_request,
++    const std::vector<uint64_t>& fallback_views) {
+   if (!user_request->need_response()) {
+     context->client = nullptr;
+   }
+@@ -93,6 +107,7 @@ int ResponseManager::NewUserRequest(std::unique_ptr<Context> context,
+   std::unique_ptr<QueueItem> queue_item = std::make_unique<QueueItem>();
+   queue_item->context = std::move(context);
+   queue_item->user_request = std::move(user_request);
++  queue_item->fallback_views = fallback_views;
+ 
+   batch_queue_.Push(std::move(queue_item));
+   return 0;
+@@ -192,6 +207,10 @@ int ResponseManager::DoBatch(
+     return ret;
+   }
+   batch_request.SerializeToString(new_request->mutable_data());
++  if (system_info_ != nullptr && system_info_->GetCurrentView() > 0) {
++    new_request->set_current_view(system_info_->GetCurrentView());
++  }
++
+   if (verifier_) {
+     auto signature_or = verifier_->SignMessage(new_request->data());
+     if (!signature_or.ok()) {
+@@ -205,14 +224,49 @@ int ResponseManager::DoBatch(
+   new_request->set_hash(SignatureVerifier::CalculateHash(new_request->data()));
+   new_request->set_proxy_id(config_.GetSelfInfo().id());
+ 
+-  LOG(INFO) << "send msg to primary:" << GetPrimary()
+-            << " batch size:" << batch_req.size()
+-            << " request:" << new_request->DebugString();
+-  replica_communicator_->SendMessage(*new_request, GetPrimary());
++  const uint32_t primary = GetPrimary();
++  SendBatchToLeader(*new_request, primary, new_request->current_view());
++
++  std::set<uint64_t> fallback_views;
++  for (const auto& item : batch_req) {
++    fallback_views.insert(item->fallback_views.begin(),
++                          item->fallback_views.end());
++  }
++  for (uint64_t view : fallback_views) {
++    const uint32_t fallback_leader = LeaderForView(view);
++    if (fallback_leader == 0 || fallback_leader == primary) {
++      continue;
++    }
++    Request fallback_request(*new_request);
++    fallback_request.set_current_view(view);
++    LOG(INFO) << "hs2 fallback view:" << view
++              << " fallback leader:" << fallback_leader;
++    SendBatchToLeader(fallback_request, fallback_leader, view);
++  }
++
+   send_num_++;
+   return 0;
+ }
+ 
++uint32_t ResponseManager::LeaderForView(uint64_t view) const {
++  if (view == 0) {
++    return 0;
++  }
++  std::vector<uint32_t> replica_ids;
++  for (const auto& replica : config_.GetReplicaInfos()) {
++    if (replica.id() > 0) {
++      replica_ids.push_back(replica.id());
++    }
++  }
++  if (replica_ids.empty()) {
++    return 0;
++  }
++  std::sort(replica_ids.begin(), replica_ids.end());
++  return replica_ids[(view - 1) % replica_ids.size()];
++}
++
++void ResponseManager::SendBatchToLeader(const Request& request,
++                                        uint32_t leader_id, uint64_t view) {
++  LOG(INFO) << "send msg to primary:" << leader_id << " view:" << view
++            << " request:" << request.DebugString();
++  replica_communicator_->SendMessage(request, leader_id);
++}
++
+ }  // namespace common
+ }  // namespace resdb
+diff --git a/platform/consensus/ordering/common/response_manager.h b/platform/consensus/ordering/common/response_manager.h
+index d275425..ae42078 100644
+--- a/platform/consensus/ordering/common/response_manager.h
++++ b/platform/consensus/ordering/common/response_manager.h
+@@ -24,6 +24,8 @@
+ 
+ #pragma once
+ 
++#include <cstdint>
++
+ #include "platform/config/resdb_config.h"
+ #include "platform/consensus/execution/system_info.h"
+ #include "platform/consensus/ordering/common/transaction_utils.h"
+@@ -46,6 +48,10 @@ class ResponseManager {
+   int NewUserRequest(std::unique_ptr<Context> context,
+                      std::unique_ptr<Request> user_request);
+ 
++  int NewUserRequestWithFallbackViews(
++      std::unique_ptr<Context> context, std::unique_ptr<Request> user_request,
++      const std::vector<uint64_t>& fallback_views);
++
+   int ProcessResponseMsg(std::unique_ptr<Context> context,
+                          std::unique_ptr<Request> request);
+ 
+@@ -53,11 +59,17 @@ class ResponseManager {
+   void SendResponseToClient(const BatchUserResponse& batch_response);
+   struct QueueItem {
+     std::unique_ptr<Context> context;
+     std::unique_ptr<Request> user_request;
++    std::vector<uint64_t> fallback_views;
+   };
++  int QueueUserRequest(std::unique_ptr<Context> context,
++                       std::unique_ptr<Request> user_request,
++                       const std::vector<uint64_t>& fallback_views);
+   int DoBatch(const std::vector<std::unique_ptr<QueueItem>>& batch_req);
+   int BatchProposeMsg();
+   int GetPrimary();
++  uint32_t LeaderForView(uint64_t view) const;
++  void SendBatchToLeader(const Request& request, uint32_t leader_id,
++                         uint64_t view);
+ 
+   std::vector<std::unique_ptr<Context>> FetchContextList(uint64_t id);
+ 
+diff --git a/platform/consensus/ordering/hs2/BUILD b/platform/consensus/ordering/hs2/BUILD
+index b24f83c..6beca8c 100644
+--- a/platform/consensus/ordering/hs2/BUILD
++++ b/platform/consensus/ordering/hs2/BUILD
+@@ -19,6 +19,7 @@ cc_library(
+         "//executor/common:transaction_manager",
+         "//platform/consensus/execution:system_info",
+         "//platform/consensus/ordering/common:commitment_basic",
++        ":hs2_pacemaker",
+         "//platform/consensus/ordering/common:message_manager_basic",
+         "//platform/consensus/ordering/common:response_manager",
+         "//platform/config:resdb_config",
+diff --git a/platform/consensus/ordering/hs2/consensus_manager_hs2.cpp b/platform/consensus/ordering/hs2/consensus_manager_hs2.cpp
+index 74682ca..04bc7f6 100644
+--- a/platform/consensus/ordering/hs2/consensus_manager_hs2.cpp
++++ b/platform/consensus/ordering/hs2/consensus_manager_hs2.cpp
+@@ -27,6 +27,7 @@ ConsensusManagerHs2::ConsensusManagerHs2(
+       transaction_manager_(executor.get()),
+       query_executor_(std::move(query_executor)),
+       system_info_(std::make_unique<SystemInfo>(config)),
++      pacemaker_(std::make_unique<Hs2Pacemaker>(config, system_info_.get())),
+       message_manager_(std::make_unique<MessageManagerBasic>(
+           config, std::move(executor), system_info_.get())),
+       commitment_(std::make_unique<CommitmentBasic>(
+@@ -109,8 +110,12 @@ int ConsensusManagerHs2::ConsensusCommit(std::unique_ptr<Context> context,
+ int ConsensusManagerHs2::HandleClientRequest(
+     std::unique_ptr<Context> context, std::unique_ptr<Request> request) {
+-  return response_manager_->NewUserRequest(std::move(context),
+-                                           std::move(request));
++  std::vector<uint64_t> fallback_views;
++  if (pacemaker_ != nullptr) {
++    fallback_views.push_back(pacemaker_->CurrentView() + 1);
++  }
++  return response_manager_->NewUserRequestWithFallbackViews(
++      std::move(context), std::move(request), fallback_views);
+ }
+ 
+ int ConsensusManagerHs2::HandleCustomQuery(
+@@ -137,16 +142,21 @@ int ConsensusManagerHs2::HandleNewTransactions(
+   }
+ 
+   const uint32_t self_id = config_.GetSelfInfo().id();
+-  const bool is_leader = self_id == leader_id_;
+-  const bool came_from_proxy = request->sender_id() != leader_id_;
+-
+   if (request->seq() == 0) {
+     request->set_seq(next_seq_.fetch_add(1));
+   }
+   if (request->current_view() == 0) {
+     request->set_current_view(current_view_);
+   }
+ 
++  if (request->current_view() > current_view_ && pacemaker_ != nullptr &&
++      pacemaker_->AdvanceView(request->current_view())) {
++    leader_id_ = pacemaker_->CurrentLeader();
++    current_view_ = static_cast<uint32_t>(pacemaker_->CurrentView());
++  }
++
++  const bool is_leader = self_id == leader_id_;
++  const bool came_from_proxy = request->sender_id() != leader_id_;
++
+   if (is_leader && came_from_proxy) {
+     auto replica_request = std::make_unique<Request>(*request);
+     replica_request->set_sender_id(self_id);
+diff --git a/platform/consensus/ordering/hs2/consensus_manager_hs2.h b/platform/consensus/ordering/hs2/consensus_manager_hs2.h
+index d67661c..7b98c8a 100644
+--- a/platform/consensus/ordering/hs2/consensus_manager_hs2.h
++++ b/platform/consensus/ordering/hs2/consensus_manager_hs2.h
+@@ -12,6 +12,7 @@
+ #include "platform/consensus/ordering/common/message_manager_basic.h"
+ #include "platform/consensus/ordering/common/response_manager.h"
+ #include "platform/consensus/ordering/hs2/hs2_consensus.h"
++#include "platform/consensus/ordering/hs2/hs2_pacemaker.h"
+ #include "platform/networkstrate/consensus_manager.h"
+ #include "platform/proto/resdb.pb.h"
+@@ -63,6 +64,7 @@ class ConsensusManagerHs2 : public ConsensusManager {
+   TransactionManager* transaction_manager_;
+   std::unique_ptr<CustomQuery> query_executor_;
+   std::unique_ptr<SystemInfo> system_info_;
++  std::unique_ptr<Hs2Pacemaker> pacemaker_;
+   std::unique_ptr<MessageManagerBasic> message_manager_;
+   std::unique_ptr<CommitmentBasic> commitment_;
+   std::unique_ptr<common::ResponseManager> response_manager_;

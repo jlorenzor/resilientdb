@@ -1,0 +1,226 @@
+diff --git a/platform/consensus/ordering/common/message_manager_basic.cpp b/platform/consensus/ordering/common/message_manager_basic.cpp
+index c11fc1d..5d787fd 100644
+--- a/platform/consensus/ordering/common/message_manager_basic.cpp
++++ b/platform/consensus/ordering/common/message_manager_basic.cpp
+@@ -47,4 +47,11 @@ std::unique_ptr<BatchUserResponse> MessageManagerBasic::GetResponseMsg() {
+   return queue_.Pop();
+ }
+ 
++int MessageManagerBasic::Commit(std::unique_ptr<Request> request) {
++  if (request == nullptr) {
++    return -1;
++  }
++  return transaction_executor_->Commit(std::move(request));
++}
++
+ }  // namespace resdb
+diff --git a/platform/consensus/ordering/common/message_manager_basic.h b/platform/consensus/ordering/common/message_manager_basic.h
+index 4d5be75..c48a05b 100644
+--- a/platform/consensus/ordering/common/message_manager_basic.h
++++ b/platform/consensus/ordering/common/message_manager_basic.h
+@@ -40,6 +40,7 @@ class MessageManagerBasic {
+                       std::unique_ptr<TransactionManager> data_impl,
+                       SystemInfo* system_info);
+ 
+   std::unique_ptr<BatchUserResponse> GetResponseMsg();
++  int Commit(std::unique_ptr<Request> request);
+ 
+  protected:
+   ResDBConfig config_;
+diff --git a/platform/consensus/ordering/hs2/BUILD b/platform/consensus/ordering/hs2/BUILD
+index 7474ae5..2303d82 100644
+--- a/platform/consensus/ordering/hs2/BUILD
++++ b/platform/consensus/ordering/hs2/BUILD
+@@ -18,6 +18,10 @@ cc_library(
+         ":hs2_core",
+         "//executor/common:custom_query",
+         "//executor/common:transaction_manager",
++        "//platform/consensus/execution:system_info",
++        "//platform/consensus/ordering/common:commitment_basic",
++        "//platform/consensus/ordering/common:message_manager_basic",
++        "//platform/consensus/ordering/common:response_manager",
+         "//platform/config:resdb_config",
+         "//platform/networkstrate:consensus_manager",
+         "//platform/proto:resdb_cc_proto",
+diff --git a/platform/consensus/ordering/hs2/consensus_manager_hs2.cpp b/platform/consensus/ordering/hs2/consensus_manager_hs2.cpp
+index 34f4e17..74682ca 100644
+--- a/platform/consensus/ordering/hs2/consensus_manager_hs2.cpp
++++ b/platform/consensus/ordering/hs2/consensus_manager_hs2.cpp
+@@ -22,12 +22,24 @@ ConsensusManagerHs2::ConsensusManagerHs2(
+     const ResDBConfig& config, std::unique_ptr<TransactionManager> executor,
+     std::unique_ptr<CustomQuery> query_executor)
+     : ConsensusManager(config),
+-      transaction_manager_(std::move(executor)),
++      transaction_manager_(executor.get()),
+       query_executor_(std::move(query_executor)),
++      system_info_(std::make_unique<SystemInfo>(config)),
++      message_manager_(std::make_unique<MessageManagerBasic>(
++          config, std::move(executor), system_info_.get())),
++      commitment_(std::make_unique<CommitmentBasic>(
++          config_, message_manager_.get(), GetBroadCastClient(),
++          GetSignatureVerifier())),
++      response_manager_(std::make_unique<common::ResponseManager>(
++          config_, GetBroadCastClient(), system_info_.get(),
++          GetSignatureVerifier())),
+       core_(static_cast<int>(config.GetReplicaNum())),
+       leader_id_(config.GetReplicaInfos().empty()
+                      ? 0
+                      : config.GetReplicaInfos().front().id()),
+-      current_view_(1) {}
++      current_view_(1),
++      next_seq_(1) {}
+ 
+ const char* ConsensusManagerHs2::ProtocolName() const { return "hs2"; }
+ 
+@@ -41,12 +53,16 @@ std::vector<ReplicaInfo> ConsensusManagerHs2::GetReplicas() {
+ }
+ 
+ uint32_t ConsensusManagerHs2::GetPrimary() { return leader_id_; }
+ 
+ uint32_t ConsensusManagerHs2::GetVersion() { return current_view_; }
+ 
+ void ConsensusManagerHs2::SetPrimary(uint32_t primary, uint64_t version) {
+   if (version < current_view_) {
+     return;
+   }
+   leader_id_ = primary;
+   current_view_ = static_cast<uint32_t>(version);
++  if (system_info_ != nullptr) {
++    system_info_->SetPrimary(primary);
++    system_info_->SetCurrentView(version);
++  }
+ }
+ 
+ void ConsensusManagerHs2::Start() { ConsensusManager::Start(); }
+@@ -56,8 +72,9 @@ bool ConsensusManagerHs2::SupportsRequestType(Request::Type type) const {
+   switch (type) {
+     case Request::TYPE_CLIENT_REQUEST:
++    case Request::TYPE_RESPONSE:
+     case Request::TYPE_NEW_TXNS:
+     case Request::TYPE_CUSTOM_QUERY:
+     case Request::TYPE_CUSTOM_TYPE:
+       return true;
+     default:
+@@ -76,8 +93,10 @@ int ConsensusManagerHs2::ConsensusCommit(std::unique_ptr<Context> context,
+ 
+   switch (request->type()) {
+     case Request::TYPE_CLIENT_REQUEST:
+-    case Request::TYPE_NEW_TXNS:
+       return HandleClientRequest(std::move(context), std::move(request));
++    case Request::TYPE_RESPONSE:
++      return response_manager_->ProcessResponseMsg(std::move(context),
++                                                   std::move(request));
++    case Request::TYPE_NEW_TXNS:
++      return HandleNewTransactions(std::move(context), std::move(request));
+     case Request::TYPE_CUSTOM_QUERY:
+       return HandleCustomQuery(std::move(context), std::move(request));
+     case Request::TYPE_CUSTOM_TYPE:
+@@ -90,11 +109,7 @@ int ConsensusManagerHs2::ConsensusCommit(std::unique_ptr<Context> context,
+ int ConsensusManagerHs2::HandleClientRequest(
+     std::unique_ptr<Context> context, std::unique_ptr<Request> request) {
+-  (void)context;
+-  (void)request;
+-  // v2.9.3 wires HS2 into ResilientDB's ConsensusManager surface only.
+-  // KV execution and distributed commit are intentionally left to later
+-  // versions so this target is not mistaken for a benchmark-ready protocol.
+-  return kNotImplementedYet;
++  return response_manager_->NewUserRequest(std::move(context),
++                                           std::move(request));
+ }
+ 
+ int ConsensusManagerHs2::HandleCustomQuery(
+@@ -118,14 +133,47 @@ int ConsensusManagerHs2::HandleConsensusMessage(
+   return kNotImplementedYet;
+ }
+ 
++int ConsensusManagerHs2::HandleNewTransactions(
++    std::unique_ptr<Context> context, std::unique_ptr<Request> request) {
++  (void)context;
++  if (request == nullptr) {
++    return kUnsupportedRequestType;
++  }
++  if (message_manager_ == nullptr) {
++    return kNotImplementedYet;
++  }
++
++  const uint32_t self_id = config_.GetSelfInfo().id();
++  const bool is_leader = self_id == leader_id_;
++  const bool came_from_proxy = request->sender_id() != leader_id_;
++
++  if (request->seq() == 0) {
++    request->set_seq(next_seq_.fetch_add(1));
++  }
++  if (request->current_view() == 0) {
++    request->set_current_view(current_view_);
++  }
++
++  if (is_leader && came_from_proxy) {
++    auto replica_request = std::make_unique<Request>(*request);
++    replica_request->set_sender_id(self_id);
++    BroadCast(*replica_request);
++    request->set_sender_id(self_id);
++  } else if (request->sender_id() == 0) {
++    request->set_sender_id(self_id);
++  }
++
++  return message_manager_->Commit(std::move(request));
++}
++
+ TransactionManager* ConsensusManagerHs2::GetTransactionManager() const {
+-  return transaction_manager_.get();
++  return transaction_manager_;
+ }
+ 
+ CustomQuery* ConsensusManagerHs2::GetCustomQueryExecutor() const {
+   return query_executor_.get();
+ }
+ 
+diff --git a/platform/consensus/ordering/hs2/consensus_manager_hs2.h b/platform/consensus/ordering/hs2/consensus_manager_hs2.h
+index 7566384..d67661c 100644
+--- a/platform/consensus/ordering/hs2/consensus_manager_hs2.h
++++ b/platform/consensus/ordering/hs2/consensus_manager_hs2.h
+@@ -1,11 +1,16 @@
+ #pragma once
+ 
++#include <atomic>
+ #include <memory>
+ #include <vector>
+ 
+ #include "executor/common/custom_query.h"
+ #include "executor/common/transaction_manager.h"
+ #include "platform/config/resdb_config.h"
++#include "platform/consensus/execution/system_info.h"
++#include "platform/consensus/ordering/common/commitment_basic.h"
++#include "platform/consensus/ordering/common/message_manager_basic.h"
++#include "platform/consensus/ordering/common/response_manager.h"
+ #include "platform/consensus/ordering/hs2/hs2_consensus.h"
+ #include "platform/networkstrate/consensus_manager.h"
+ #include "platform/proto/resdb.pb.h"
+@@ -19,9 +24,9 @@ namespace hs2 {
+ // ServiceNetwork/ConsensusManager surface and the HS2 core rules. It is not
+-// a complete HotStuff-2 implementation yet: request execution, network QC
+-// aggregation, pacemaker, persistence, and KV service integration are later
+-// milestones.
++// a complete HotStuff-2 implementation yet: the v2.9.7 runtime path executes
++// KV batches through ResilientDB's common executor, while network QC
++// aggregation, pacemaker, persistence, and fault handling remain milestones.
+ class ConsensusManagerHs2 : public ConsensusManager {
+@@ -53,13 +58,19 @@ class ConsensusManagerHs2 : public ConsensusManager {
+   int HandleConsensusMessage(std::unique_ptr<Context> context,
+                              std::unique_ptr<Request> request);
++  int HandleNewTransactions(std::unique_ptr<Context> context,
++                            std::unique_ptr<Request> request);
+ 
+  private:
+-  std::unique_ptr<TransactionManager> transaction_manager_;
++  TransactionManager* transaction_manager_;
+   std::unique_ptr<CustomQuery> query_executor_;
++  std::unique_ptr<SystemInfo> system_info_;
++  std::unique_ptr<MessageManagerBasic> message_manager_;
++  std::unique_ptr<CommitmentBasic> commitment_;
++  std::unique_ptr<common::ResponseManager> response_manager_;
+   Hs2Consensus core_;
+   uint32_t leader_id_;
+   uint32_t current_view_;
++  std::atomic<uint64_t> next_seq_;
+ };

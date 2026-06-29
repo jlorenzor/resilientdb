@@ -1,0 +1,227 @@
+diff --git a/benchmark/protocols/hs2/BUILD b/benchmark/protocols/hs2/BUILD
+index 90b95f6..4e0b70c 100644
+--- a/benchmark/protocols/hs2/BUILD
++++ b/benchmark/protocols/hs2/BUILD
+@@ -36,3 +36,12 @@ cc_binary(
+         "//visibility:public",
+     ],
+ )
++
++cc_binary(
++    name = "hs2_pacemaker_probe",
++    srcs = ["hs2_pacemaker_probe.cpp"],
++    deps = [
++        "//platform/config:resdb_config",
++        "//platform/consensus/ordering/hs2:hs2_pacemaker",
++    ],
++)
+diff --git a/benchmark/protocols/hs2/hs2_pacemaker_probe.cpp b/benchmark/protocols/hs2/hs2_pacemaker_probe.cpp
+new file mode 100644
+index 0000000..232f5dc
+--- /dev/null
++++ b/benchmark/protocols/hs2/hs2_pacemaker_probe.cpp
+@@ -0,0 +1,78 @@
++#include <iostream>
++#include <vector>
++
++#include "platform/config/resdb_config.h"
++#include "platform/consensus/execution/system_info.h"
++#include "platform/consensus/ordering/hs2/hs2_pacemaker.h"
++#include "platform/proto/resdb.pb.h"
++
++namespace {
++
++int Fail(const char* message) {
++  std::cerr << message << std::endl;
++  return 1;
++}
++
++resdb::ReplicaInfo MakeReplica(int id) {
++  resdb::ReplicaInfo info;
++  info.set_id(id);
++  info.set_ip("127.0.0.1");
++  info.set_port(19000 + id);
++  return info;
++}
++
++}  // namespace
++
++int main() {
++  std::vector<resdb::ReplicaInfo> replicas;
++  for (int id = 1; id <= 4; ++id) {
++    replicas.push_back(MakeReplica(id));
++  }
++
++  resdb::ResDBConfig config(replicas, replicas.front());
++  resdb::SystemInfo system_info(config);
++  resdb::hs2::Hs2Pacemaker pacemaker(config, &system_info);
++
++  if (pacemaker.CurrentView() != 1) {
++    return Fail("unexpected initial view");
++  }
++  if (pacemaker.CurrentLeader() != 1) {
++    return Fail("unexpected initial leader");
++  }
++  if (pacemaker.LeaderForView(1) != 1) {
++    return Fail("view 1 leader mismatch");
++  }
++  if (pacemaker.LeaderForView(2) != 2) {
++    return Fail("view 2 leader mismatch");
++  }
++  if (pacemaker.LeaderForView(3) != 3) {
++    return Fail("view 3 leader mismatch");
++  }
++  if (pacemaker.LeaderForView(4) != 4) {
++    return Fail("view 4 leader mismatch");
++  }
++  if (pacemaker.LeaderForView(5) != 1) {
++    return Fail("view 5 leader mismatch");
++  }
++  if (pacemaker.AdvanceView(1)) {
++    return Fail("stale view accepted");
++  }
++  if (!pacemaker.AdvanceView(2)) {
++    return Fail("view 2 rejected");
++  }
++  if (system_info.GetPrimaryId() != 2 || system_info.GetCurrentView() != 2) {
++    return Fail("system info not updated for view 2");
++  }
++  if (!pacemaker.AdvanceView(4)) {
++    return Fail("view 4 rejected");
++  }
++  if (system_info.GetPrimaryId() != 4 || system_info.GetCurrentView() != 4) {
++    return Fail("system info not updated for view 4");
++  }
++  if (!pacemaker.AdvanceView(5)) {
++    return Fail("view 5 rejected");
++  }
++  if (system_info.GetPrimaryId() != 1 || system_info.GetCurrentView() != 5) {
++    return Fail("system info not updated for view 5");
++  }
++
++  std::cout << "hs2 pacemaker ok" << std::endl;
++  return 0;
++}
+diff --git a/platform/consensus/ordering/hs2/BUILD b/platform/consensus/ordering/hs2/BUILD
+index 2303d82..b24f83c 100644
+--- a/platform/consensus/ordering/hs2/BUILD
++++ b/platform/consensus/ordering/hs2/BUILD
+@@ -29,3 +29,17 @@ cc_library(
+         "//visibility:public",
+     ],
+ )
++
++cc_library(
++    name = "hs2_pacemaker",
++    srcs = ["hs2_pacemaker.cpp"],
++    hdrs = ["hs2_pacemaker.h"],
++    deps = [
++        "//platform/config:resdb_config",
++        "//platform/consensus/execution:system_info",
++        "//platform/proto:resdb_cc_proto",
++    ],
++    visibility = [
++        "//visibility:public",
++    ],
++)
+diff --git a/platform/consensus/ordering/hs2/hs2_pacemaker.cpp b/platform/consensus/ordering/hs2/hs2_pacemaker.cpp
+new file mode 100644
+index 0000000..0d8d8fe
+--- /dev/null
++++ b/platform/consensus/ordering/hs2/hs2_pacemaker.cpp
+@@ -0,0 +1,57 @@
++#include "platform/consensus/ordering/hs2/hs2_pacemaker.h"
++
++#include <algorithm>
++
++namespace resdb {
++namespace hs2 {
++
++Hs2Pacemaker::Hs2Pacemaker(const ResDBConfig& config,
++                           SystemInfo* system_info)
++    : system_info_(system_info), current_view_(1) {
++  for (const auto& replica : config.GetReplicaInfos()) {
++    if (replica.id() > 0) {
++      replica_ids_.push_back(replica.id());
++    }
++  }
++  std::sort(replica_ids_.begin(), replica_ids_.end());
++  if (system_info_ != nullptr && system_info_->GetCurrentView() > 0) {
++    current_view_ = system_info_->GetCurrentView();
++  }
++  const uint32_t leader = CurrentLeader();
++  if (system_info_ != nullptr && leader != 0) {
++    system_info_->SetPrimary(leader);
++    system_info_->SetCurrentView(current_view_);
++  }
++}
++
++uint64_t Hs2Pacemaker::CurrentView() const { return current_view_; }
++
++uint32_t Hs2Pacemaker::CurrentLeader() const {
++  return LeaderForView(current_view_);
++}
++
++uint32_t Hs2Pacemaker::LeaderForView(uint64_t view) const {
++  if (replica_ids_.empty() || view == 0) {
++    return 0;
++  }
++  const size_t index = static_cast<size_t>((view - 1) % replica_ids_.size());
++  return replica_ids_[index];
++}
++
++bool Hs2Pacemaker::AdvanceView(uint64_t new_view) {
++  if (new_view <= current_view_) {
++    return false;
++  }
++  const uint32_t leader = LeaderForView(new_view);
++  if (leader == 0) {
++    return false;
++  }
++  current_view_ = new_view;
++  if (system_info_ != nullptr) {
++    system_info_->SetPrimary(leader);
++    system_info_->SetCurrentView(new_view);
++  }
++  return true;
++}
++
++}  // namespace hs2
++}  // namespace resdb
+diff --git a/platform/consensus/ordering/hs2/hs2_pacemaker.h b/platform/consensus/ordering/hs2/hs2_pacemaker.h
+new file mode 100644
+index 0000000..2234c96
+--- /dev/null
++++ b/platform/consensus/ordering/hs2/hs2_pacemaker.h
+@@ -0,0 +1,31 @@
++#pragma once
++
++#include <cstdint>
++#include <vector>
++
++#include "platform/config/resdb_config.h"
++#include "platform/consensus/execution/system_info.h"
++
++namespace resdb {
++namespace hs2 {
++
++// Minimal deterministic pacemaker for the v2.9.11 leader-recovery track.
++// It updates SystemInfo, but it does not yet implement timeout certificates,
++// highQC transfer, or signed NEWVIEW messages.
++class Hs2Pacemaker {
++ public:
++  Hs2Pacemaker(const ResDBConfig& config, SystemInfo* system_info);
++
++  uint64_t CurrentView() const;
++  uint32_t CurrentLeader() const;
++  uint32_t LeaderForView(uint64_t view) const;
++  bool AdvanceView(uint64_t new_view);
++
++ private:
++  SystemInfo* system_info_;
++  uint64_t current_view_;
++  std::vector<uint32_t> replica_ids_;
++};
++
++}  // namespace hs2
++}  // namespace resdb

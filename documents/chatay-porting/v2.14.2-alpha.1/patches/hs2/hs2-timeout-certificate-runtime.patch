@@ -1,0 +1,453 @@
+diff --git a/benchmark/protocols/hs2/BUILD b/benchmark/protocols/hs2/BUILD
+index 4e0b70c..0b51c23 100644
+--- a/benchmark/protocols/hs2/BUILD
++++ b/benchmark/protocols/hs2/BUILD
+@@ -45,3 +45,14 @@ cc_binary(
+         "//platform/consensus/ordering/hs2:hs2_pacemaker",
+     ],
+ )
++
++cc_binary(
++    name = "hs2_timeout_certificate_probe",
++    srcs = ["hs2_timeout_certificate_probe.cpp"],
++    deps = [
++        "//platform/config:resdb_config",
++        "//platform/consensus/ordering/hs2:hs2_pacemaker",
++        "//platform/consensus/ordering/hs2:hs2_timeout_certificate",
++    ],
++)
+diff --git a/benchmark/protocols/hs2/hs2_timeout_certificate_probe.cpp b/benchmark/protocols/hs2/hs2_timeout_certificate_probe.cpp
+new file mode 100644
+index 0000000..689fb10
+--- /dev/null
++++ b/benchmark/protocols/hs2/hs2_timeout_certificate_probe.cpp
+@@ -0,0 +1,137 @@
++#include <iostream>
++#include <string>
++#include <vector>
++
++#include "platform/config/resdb_config.h"
++#include "platform/consensus/execution/system_info.h"
++#include "platform/consensus/ordering/hs2/hs2_pacemaker.h"
++#include "platform/consensus/ordering/hs2/hs2_timeout_certificate.h"
++#include "platform/proto/resdb.pb.h"
++
++namespace {
++
++int Fail(const char* message) {
++  std::cerr << message << std::endl;
++  return 1;
++}
++
++resdb::ReplicaInfo MakeReplica(int id) {
++  resdb::ReplicaInfo info;
++  info.set_id(id);
++  info.set_ip("127.0.0.1");
++  info.set_port(20000 + id);
++  return info;
++}
++
++resdb::hs2::Hs2TimeoutMessage TimeoutFrom(int replica_id, int64_t view,
++                                          int64_t high_qc_view,
++                                          const std::string& high_qc_hash) {
++  resdb::hs2::Hs2TimeoutMessage timeout;
++  timeout.replica_id = replica_id;
++  timeout.view = view;
++  timeout.high_qc_view = high_qc_view;
++  timeout.high_qc_block_hash = high_qc_hash;
++  timeout.signature = "local-probe-signature-" + std::to_string(replica_id);
++  return timeout;
++}
++
++}  // namespace
++
++int main() {
++  constexpr int kReplicaCount = 4;
++  constexpr int64_t kTimedOutView = 1;
++  std::vector<resdb::ReplicaInfo> replicas;
++  for (int id = 1; id <= kReplicaCount; ++id) {
++    replicas.push_back(MakeReplica(id));
++  }
++
++  resdb::ResDBConfig config(replicas, replicas.front());
++  resdb::SystemInfo system_info(config);
++  resdb::hs2::Hs2Pacemaker pacemaker(config, &system_info);
++  resdb::hs2::Hs2TimeoutCollector collector(kReplicaCount, kTimedOutView);
++
++  if (collector.QuorumSize() != 3) {
++    return Fail("unexpected timeout quorum size");
++  }
++  if (pacemaker.CurrentView() != kTimedOutView ||
++      pacemaker.CurrentLeader() != 1) {
++    return Fail("unexpected initial pacemaker state");
++  }
++
++  const auto invalid_replica =
++      collector.RecordTimeout(TimeoutFrom(0, kTimedOutView, 0, "genesis"));
++  if (invalid_replica !=
++      resdb::hs2::Hs2TimeoutRecordStatus::kInvalidReplica) {
++    return Fail("invalid replica accepted");
++  }
++
++  const auto wrong_view =
++      collector.RecordTimeout(TimeoutFrom(2, kTimedOutView + 1, 0, "genesis"));
++  if (wrong_view != resdb::hs2::Hs2TimeoutRecordStatus::kWrongView) {
++    return Fail("wrong-view timeout accepted");
++  }
++
++  const auto first =
++      collector.RecordTimeout(TimeoutFrom(2, kTimedOutView, 0, "genesis"));
++  if (first != resdb::hs2::Hs2TimeoutRecordStatus::kAccepted) {
++    return Fail("first timeout rejected");
++  }
++  if (collector.HasCertificate()) {
++    return Fail("certificate formed before quorum");
++  }
++
++  const auto duplicate =
++      collector.RecordTimeout(TimeoutFrom(2, kTimedOutView, 0, "genesis"));
++  if (duplicate != resdb::hs2::Hs2TimeoutRecordStatus::kDuplicateReplica) {
++    return Fail("duplicate timeout accepted");
++  }
++
++  const auto second =
++      collector.RecordTimeout(TimeoutFrom(3, kTimedOutView, 1, "block-1"));
++  if (second != resdb::hs2::Hs2TimeoutRecordStatus::kAccepted) {
++    return Fail("second timeout rejected");
++  }
++  if (collector.HasCertificate()) {
++    return Fail("certificate formed with only two timeouts");
++  }
++
++  const auto third =
++      collector.RecordTimeout(TimeoutFrom(4, kTimedOutView, 1, "block-1"));
++  if (third != resdb::hs2::Hs2TimeoutRecordStatus::kAccepted) {
++    return Fail("third timeout rejected");
++  }
++  if (!collector.HasCertificate()) {
++    return Fail("certificate not formed at quorum");
++  }
++
++  const auto& certificate = collector.Certificate();
++  if (!collector.IsValidCertificate(certificate)) {
++    return Fail("formed certificate is invalid");
++  }
++  if (certificate.view != kTimedOutView) {
++    return Fail("certificate view mismatch");
++  }
++  if (certificate.timeouts.size() != 3 || certificate.voters.size() != 3) {
++    return Fail("certificate quorum content mismatch");
++  }
++  if (certificate.high_qc_view != 1 ||
++      certificate.high_qc_block_hash != "block-1") {
++    return Fail("certificate highQC selection mismatch");
++  }
++
++  resdb::hs2::Hs2TimeoutCertificate insufficient = certificate;
++  insufficient.timeouts.pop_back();
++  insufficient.voters.pop_back();
++  if (collector.IsValidCertificate(insufficient)) {
++    return Fail("insufficient certificate accepted");
++  }
++
++  resdb::hs2::Hs2TimeoutCertificate duplicate_cert = certificate;
++  duplicate_cert.timeouts[2].replica_id = duplicate_cert.timeouts[0].replica_id;
++  if (collector.IsValidCertificate(duplicate_cert)) {
++    return Fail("duplicate-voter certificate accepted");
++  }
++
++  resdb::hs2::Hs2TimeoutCertificate wrong_view_cert = certificate;
++  wrong_view_cert.view = kTimedOutView + 1;
++  if (collector.IsValidCertificate(wrong_view_cert)) {
++    return Fail("wrong-view certificate accepted");
++  }
++
++  if (!pacemaker.AdvanceView(certificate.view + 1)) {
++    return Fail("pacemaker did not advance after timeout certificate");
++  }
++  if (pacemaker.CurrentView() != 2 || pacemaker.CurrentLeader() != 2) {
++    return Fail("timeout certificate did not select expected next leader");
++  }
++
++  std::cout << "HS2_TIMEOUT_CERTIFICATE_FORMED view=" << certificate.view
++            << " quorum=" << collector.QuorumSize()
++            << " voters=2,3,4"
++            << " high_qc_view=" << certificate.high_qc_view
++            << " high_qc_block=" << certificate.high_qc_block_hash
++            << " next_view=" << pacemaker.CurrentView()
++            << " next_leader=" << pacemaker.CurrentLeader() << std::endl;
++  std::cout << "hs2 timeout certificate ok" << std::endl;
++  return 0;
++}
+diff --git a/platform/consensus/ordering/hs2/BUILD b/platform/consensus/ordering/hs2/BUILD
+index 6beca8c..3c58d18 100644
+--- a/platform/consensus/ordering/hs2/BUILD
++++ b/platform/consensus/ordering/hs2/BUILD
+@@ -43,3 +43,14 @@ cc_library(
+         "//visibility:public",
+     ],
+ )
++
++cc_library(
++    name = "hs2_timeout_certificate",
++    srcs = ["hs2_timeout_certificate.cpp"],
++    hdrs = ["hs2_timeout_certificate.h"],
++    deps = [
++        ":hs2_core",
++    ],
++    visibility = [
++        "//visibility:public",
++    ],
++)
+diff --git a/platform/consensus/ordering/hs2/hs2_timeout_certificate.cpp b/platform/consensus/ordering/hs2/hs2_timeout_certificate.cpp
+new file mode 100644
+index 0000000..102feb0
+--- /dev/null
++++ b/platform/consensus/ordering/hs2/hs2_timeout_certificate.cpp
+@@ -0,0 +1,154 @@
++#include "platform/consensus/ordering/hs2/hs2_timeout_certificate.h"
++
++#include <algorithm>
++#include <set>
++
++namespace resdb {
++namespace hs2 {
++
++namespace {
++
++int CalculateQuorumSize(int replica_count) {
++  if (replica_count <= 0) {
++    return 0;
++  }
++  const int f = (replica_count - 1) / 3;
++  return (2 * f) + 1;
++}
++
++}  // namespace
++
++Hs2TimeoutCollector::Hs2TimeoutCollector(int replica_count,
++                                         int64_t target_view)
++    : replica_count_(replica_count),
++      quorum_size_(CalculateQuorumSize(replica_count)),
++      target_view_(target_view) {}
++
++int Hs2TimeoutCollector::ReplicaCount() const { return replica_count_; }
++
++int Hs2TimeoutCollector::QuorumSize() const { return quorum_size_; }
++
++int64_t Hs2TimeoutCollector::TargetView() const { return target_view_; }
++
++bool Hs2TimeoutCollector::HasCertificate() const {
++  return certificate_formed_;
++}
++
++const Hs2TimeoutCertificate& Hs2TimeoutCollector::Certificate() const {
++  return certificate_;
++}
++
++std::vector<int> Hs2TimeoutCollector::Voters() const {
++  std::vector<int> voters;
++  voters.reserve(timeouts_by_replica_.size());
++  for (const auto& entry : timeouts_by_replica_) {
++    voters.push_back(entry.first);
++  }
++  return voters;
++}
++
++Hs2TimeoutRecordStatus Hs2TimeoutCollector::RecordTimeout(
++    const Hs2TimeoutMessage& timeout) {
++  const auto validation = ValidateTimeout(timeout);
++  if (validation != Hs2TimeoutRecordStatus::kAccepted) {
++    return validation;
++  }
++  if (timeouts_by_replica_.find(timeout.replica_id) !=
++      timeouts_by_replica_.end()) {
++    return Hs2TimeoutRecordStatus::kDuplicateReplica;
++  }
++
++  timeouts_by_replica_[timeout.replica_id] = timeout;
++  if (!certificate_formed_ &&
++      static_cast<int>(timeouts_by_replica_.size()) >= quorum_size_) {
++    FormCertificate();
++  }
++  return Hs2TimeoutRecordStatus::kAccepted;
++}
++
++bool Hs2TimeoutCollector::IsValidCertificate(
++    const Hs2TimeoutCertificate& certificate) const {
++  if (certificate.view != target_view_ || target_view_ <= 0) {
++    return false;
++  }
++  if (static_cast<int>(certificate.timeouts.size()) < quorum_size_) {
++    return false;
++  }
++
++  std::set<int> unique_replicas;
++  int64_t selected_high_qc_view = 0;
++  std::string selected_high_qc_block_hash;
++  for (const auto& timeout : certificate.timeouts) {
++    if (ValidateTimeout(timeout) != Hs2TimeoutRecordStatus::kAccepted) {
++      return false;
++    }
++    if (!unique_replicas.insert(timeout.replica_id).second) {
++      return false;
++    }
++    if (timeout.high_qc_view > selected_high_qc_view) {
++      selected_high_qc_view = timeout.high_qc_view;
++      selected_high_qc_block_hash = timeout.high_qc_block_hash;
++    }
++  }
++  if (static_cast<int>(unique_replicas.size()) < quorum_size_) {
++    return false;
++  }
++
++  std::set<int> declared_voters(certificate.voters.begin(),
++                                certificate.voters.end());
++  if (declared_voters.size() != unique_replicas.size()) {
++    return false;
++  }
++  if (declared_voters != unique_replicas) {
++    return false;
++  }
++  if (certificate.high_qc_view != selected_high_qc_view) {
++    return false;
++  }
++  return certificate.high_qc_block_hash == selected_high_qc_block_hash;
++}
++
++Hs2TimeoutRecordStatus Hs2TimeoutCollector::ValidateTimeout(
++    const Hs2TimeoutMessage& timeout) const {
++  if (timeout.replica_id <= 0 || timeout.replica_id > replica_count_) {
++    return Hs2TimeoutRecordStatus::kInvalidReplica;
++  }
++  if (timeout.view <= 0 || target_view_ <= 0) {
++    return Hs2TimeoutRecordStatus::kInvalidView;
++  }
++  if (timeout.view != target_view_) {
++    return Hs2TimeoutRecordStatus::kWrongView;
++  }
++  if (timeout.high_qc_view < 0 || timeout.high_qc_view > timeout.view) {
++    return Hs2TimeoutRecordStatus::kInvalidHighQc;
++  }
++  if (timeout.high_qc_view > 0 && timeout.high_qc_block_hash.empty()) {
++    return Hs2TimeoutRecordStatus::kInvalidHighQc;
++  }
++  return Hs2TimeoutRecordStatus::kAccepted;
++}
++
++void Hs2TimeoutCollector::FormCertificate() {
++  certificate_.view = target_view_;
++  certificate_.timeouts.clear();
++  certificate_.voters.clear();
++  certificate_.high_qc_view = 0;
++  certificate_.high_qc_block_hash.clear();
++
++  for (const auto& entry : timeouts_by_replica_) {
++    certificate_.timeouts.push_back(entry.second);
++    certificate_.voters.push_back(entry.first);
++    if (entry.second.high_qc_view > certificate_.high_qc_view) {
++      certificate_.high_qc_view = entry.second.high_qc_view;
++      certificate_.high_qc_block_hash = entry.second.high_qc_block_hash;
++    }
++  }
++  std::sort(certificate_.voters.begin(), certificate_.voters.end());
++  certificate_formed_ = IsValidCertificate(certificate_);
++}
++
++const char* TimeoutRecordStatusName(Hs2TimeoutRecordStatus status) {
++  switch (status) {
++    case Hs2TimeoutRecordStatus::kAccepted:
++      return "ACCEPTED";
++    case Hs2TimeoutRecordStatus::kDuplicateReplica:
++      return "DUPLICATE_REPLICA";
++    case Hs2TimeoutRecordStatus::kInvalidReplica:
++      return "INVALID_REPLICA";
++    case Hs2TimeoutRecordStatus::kInvalidView:
++      return "INVALID_VIEW";
++    case Hs2TimeoutRecordStatus::kWrongView:
++      return "WRONG_VIEW";
++    case Hs2TimeoutRecordStatus::kInvalidHighQc:
++      return "INVALID_HIGH_QC";
++  }
++  return "UNKNOWN";
++}
++
++}  // namespace hs2
++}  // namespace resdb
+diff --git a/platform/consensus/ordering/hs2/hs2_timeout_certificate.h b/platform/consensus/ordering/hs2/hs2_timeout_certificate.h
+new file mode 100644
+index 0000000..166dc9c
+--- /dev/null
++++ b/platform/consensus/ordering/hs2/hs2_timeout_certificate.h
+@@ -0,0 +1,83 @@
++#pragma once
++
++#include <cstdint>
++#include <map>
++#include <string>
++#include <vector>
++
++namespace resdb {
++namespace hs2 {
++
++struct Hs2TimeoutMessage {
++  int replica_id = 0;
++  int64_t view = 0;
++  int64_t high_qc_view = 0;
++  std::string high_qc_block_hash;
++  std::string signature;
++};
++
++struct Hs2TimeoutCertificate {
++  int64_t view = 0;
++  int64_t high_qc_view = 0;
++  std::string high_qc_block_hash;
++  std::vector<int> voters;
++  std::vector<Hs2TimeoutMessage> timeouts;
++};
++
++enum class Hs2TimeoutRecordStatus {
++  kAccepted = 0,
++  kDuplicateReplica = 1,
++  kInvalidReplica = 2,
++  kInvalidView = 3,
++  kWrongView = 4,
++  kInvalidHighQc = 5,
++};
++
++// Collects timeout votes for one HS2 view and forms a timeout certificate once
++// the collector observes 2f + 1 distinct replicas. This is intentionally a
++// small component: it validates quorum, duplicate voters, view consistency, and
++// highQC metadata before later patches wire certificates into new-view.
++class Hs2TimeoutCollector {
++ public:
++  Hs2TimeoutCollector(int replica_count, int64_t target_view);
++
++  int ReplicaCount() const;
++  int QuorumSize() const;
++  int64_t TargetView() const;
++  bool HasCertificate() const;
++  const Hs2TimeoutCertificate& Certificate() const;
++  std::vector<int> Voters() const;
++
++  Hs2TimeoutRecordStatus RecordTimeout(const Hs2TimeoutMessage& timeout);
++  bool IsValidCertificate(const Hs2TimeoutCertificate& certificate) const;
++
++ private:
++  Hs2TimeoutRecordStatus ValidateTimeout(
++      const Hs2TimeoutMessage& timeout) const;
++  void FormCertificate();
++
++ private:
++  int replica_count_;
++  int quorum_size_;
++  int64_t target_view_;
++  bool certificate_formed_ = false;
++  std::map<int, Hs2TimeoutMessage> timeouts_by_replica_;
++  Hs2TimeoutCertificate certificate_;
++};
++
++const char* TimeoutRecordStatusName(Hs2TimeoutRecordStatus status);
++
++}  // namespace hs2
++}  // namespace resdb

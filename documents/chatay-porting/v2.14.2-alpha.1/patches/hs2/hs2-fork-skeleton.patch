@@ -1,0 +1,280 @@
+diff --git a/benchmark/protocols/hs2/BUILD b/benchmark/protocols/hs2/BUILD
+new file mode 100644
+index 0000000..a1b4f18
+--- /dev/null
++++ b/benchmark/protocols/hs2/BUILD
+@@ -0,0 +1,10 @@
++cc_binary(
++    name = "hs2_skeleton_probe",
++    srcs = ["hs2_skeleton_probe.cpp"],
++    deps = [
++        "//platform/consensus/ordering/hs2:hs2_core",
++    ],
++)
+diff --git a/benchmark/protocols/hs2/hs2_skeleton_probe.cpp b/benchmark/protocols/hs2/hs2_skeleton_probe.cpp
+new file mode 100644
+index 0000000..6a64d1a
+--- /dev/null
++++ b/benchmark/protocols/hs2/hs2_skeleton_probe.cpp
+@@ -0,0 +1,31 @@
++#include <iostream>
++
++#include "platform/consensus/ordering/hs2/hs2_consensus.h"
++
++int main() {
++  resdb::hs2::Hs2Consensus consensus(/*replica_count=*/4);
++  resdb::hs2::Hs2Block block;
++  block.height = 1;
++  block.view = 1;
++  block.block_hash = "block-1";
++  block.parent_hash = "genesis";
++  block.payload_digest = "sha256:test";
++  block.proposer_id = 1;
++
++  resdb::hs2::Hs2QuorumCertificate qc;
++  qc.height = 1;
++  qc.view = 1;
++  qc.block_hash = "block-1";
++  qc.phase = resdb::hs2::Hs2Phase::kPhase2;
++  qc.voters = {1, 2, 3};
++
++  if (!consensus.IsValidQuorumCertificate(qc)) {
++    std::cerr << "invalid qc" << std::endl;
++    return 1;
++  }
++  if (!consensus.CanVote(block)) {
++    std::cerr << "unsafe block" << std::endl;
++    return 2;
++  }
++  std::cout << "hs2 skeleton ok" << std::endl;
++  return 0;
++}
+diff --git a/platform/consensus/ordering/hs2/BUILD b/platform/consensus/ordering/hs2/BUILD
+new file mode 100644
+index 0000000..c64e6d1
+--- /dev/null
++++ b/platform/consensus/ordering/hs2/BUILD
+@@ -0,0 +1,11 @@
++package(default_visibility = ["//visibility:public"])
++
++cc_library(
++    name = "hs2_core",
++    srcs = ["hs2_consensus.cpp"],
++    hdrs = [
++        "hs2_consensus.h",
++        "hs2_types.h",
++    ],
++)
+diff --git a/platform/consensus/ordering/hs2/hs2_consensus.cpp b/platform/consensus/ordering/hs2/hs2_consensus.cpp
+new file mode 100644
+index 0000000..ab0067d
+--- /dev/null
++++ b/platform/consensus/ordering/hs2/hs2_consensus.cpp
+@@ -0,0 +1,49 @@
++#include "platform/consensus/ordering/hs2/hs2_consensus.h"
++
++#include <set>
++
++namespace resdb {
++namespace hs2 {
++
++Hs2Consensus::Hs2Consensus(int replica_count)
++    : replica_count_(replica_count),
++      quorum_size_((2 * ((replica_count - 1) / 3)) + 1) {}
++
++int Hs2Consensus::ReplicaCount() const { return replica_count_; }
++
++int Hs2Consensus::QuorumSize() const { return quorum_size_; }
++
++bool Hs2Consensus::CanVote(const Hs2Block& block) const {
++  if (block.height <= 0 || block.view <= 0) {
++    return false;
++  }
++  if (block.block_hash.empty() || block.payload_digest.empty()) {
++    return false;
++  }
++  if (block.proposer_id <= 0 || block.proposer_id > replica_count_) {
++    return false;
++  }
++  return true;
++}
++
++bool Hs2Consensus::IsValidQuorumCertificate(
++    const Hs2QuorumCertificate& qc) const {
++  if (qc.height <= 0 || qc.view <= 0 || qc.block_hash.empty()) {
++    return false;
++  }
++  if (static_cast<int>(qc.voters.size()) < quorum_size_) {
++    return false;
++  }
++  std::set<int> unique_voters;
++  for (int voter : qc.voters) {
++    if (voter <= 0 || voter > replica_count_) {
++      return false;
++    }
++    unique_voters.insert(voter);
++  }
++  return static_cast<int>(unique_voters.size()) >= quorum_size_;
++}
++
++bool Hs2Consensus::WouldCommit(const Hs2QuorumCertificate& qc) const {
++  return qc.phase == Hs2Phase::kPhase2 && IsValidQuorumCertificate(qc);
++}
++
++}  // namespace hs2
++}  // namespace resdb
+diff --git a/platform/consensus/ordering/hs2/hs2_consensus.h b/platform/consensus/ordering/hs2/hs2_consensus.h
+new file mode 100644
+index 0000000..28e90ff
+--- /dev/null
++++ b/platform/consensus/ordering/hs2/hs2_consensus.h
+@@ -0,0 +1,25 @@
++#pragma once
++
++#include "platform/consensus/ordering/hs2/hs2_types.h"
++
++namespace resdb {
++namespace hs2 {
++
++class Hs2Consensus {
++ public:
++  explicit Hs2Consensus(int replica_count);
++
++  int ReplicaCount() const;
++  int QuorumSize() const;
++
++  bool CanVote(const Hs2Block& block) const;
++  bool IsValidQuorumCertificate(const Hs2QuorumCertificate& qc) const;
++  bool WouldCommit(const Hs2QuorumCertificate& qc) const;
++
++ private:
++  int replica_count_;
++  int quorum_size_;
++};
++
++}  // namespace hs2
++}  // namespace resdb
+diff --git a/platform/consensus/ordering/hs2/hs2_types.h b/platform/consensus/ordering/hs2/hs2_types.h
+new file mode 100644
+index 0000000..782fd8f
+--- /dev/null
++++ b/platform/consensus/ordering/hs2/hs2_types.h
+@@ -0,0 +1,40 @@
++#pragma once
++
++#include <cstdint>
++#include <string>
++#include <vector>
++
++namespace resdb {
++namespace hs2 {
++
++enum class Hs2Phase {
++  kPhase1 = 1,
++  kPhase2 = 2,
++};
++
++struct Hs2Block {
++  int64_t height = 0;
++  int64_t view = 0;
++  std::string block_hash;
++  std::string parent_hash;
++  std::string payload_digest;
++  int proposer_id = 0;
++};
++
++struct Hs2Vote {
++  int replica_id = 0;
++  int64_t height = 0;
++  int64_t view = 0;
++  std::string block_hash;
++  Hs2Phase phase = Hs2Phase::kPhase1;
++  std::string signature;
++};
++
++struct Hs2QuorumCertificate {
++  int64_t height = 0;
++  int64_t view = 0;
++  std::string block_hash;
++  Hs2Phase phase = Hs2Phase::kPhase1;
++  std::vector<int> voters;
++};
++
++}  // namespace hs2
++}  // namespace resdb
+diff --git a/proto/hs2.proto b/proto/hs2.proto
+new file mode 100644
+index 0000000..b0a99d9
+--- /dev/null
++++ b/proto/hs2.proto
+@@ -0,0 +1,66 @@
++syntax = "proto3";
++
++package resdb.hs2;
++
++message Hs2Block {
++  int64 height = 1;
++  int64 view = 2;
++  string block_hash = 3;
++  string parent_hash = 4;
++  string payload_digest = 5;
++  bytes payload = 6;
++  int32 proposer_id = 7;
++  int64 created_at_unix_ms = 8;
++}
++
++enum Hs2Phase {
++  HS2_PHASE_UNSPECIFIED = 0;
++  HS2_PHASE_1 = 1;
++  HS2_PHASE_2 = 2;
++}
++
++message Hs2Vote {
++  int32 replica_id = 1;
++  int64 height = 2;
++  int64 view = 3;
++  string block_hash = 4;
++  Hs2Phase phase = 5;
++  bytes signature = 6;
++}
++
++message Hs2QuorumCertificate {
++  int64 height = 1;
++  int64 view = 2;
++  string block_hash = 3;
++  Hs2Phase phase = 4;
++  repeated Hs2Vote votes = 5;
++  string aggregate_digest = 6;
++}
++
++message Hs2Proposal {
++  Hs2Block block = 1;
++  Hs2QuorumCertificate justify_qc = 2;
++  int32 leader_id = 3;
++  bytes signature = 4;
++}
++
++message Hs2Timeout {
++  int32 replica_id = 1;
++  int64 view = 2;
++  Hs2QuorumCertificate high_qc = 3;
++  bytes signature = 4;
++}
++
++message Hs2TimeoutCertificate {
++  int64 view = 1;
++  repeated Hs2Timeout timeouts = 2;
++}
++
++message Hs2CommitProof {
++  Hs2Block block = 1;
++  Hs2QuorumCertificate commit_qc = 2;
++}
++
++message Hs2ClientReply {
++  string request_id = 1;
++  string block_hash = 2;
++  int64 height = 3;
++  int64 view = 4;
++  bool committed = 5;
++}
