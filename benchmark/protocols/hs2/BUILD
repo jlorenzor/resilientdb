@@ -24,6 +24,17 @@ cc_binary(
 )
 
 cc_binary(
+    name = "hs2_new_txn_pipeline_probe",
+    srcs = ["hs2_new_txn_pipeline_probe.cpp"],
+    deps = [
+        "//common/crypto:signature_verifier",
+        "//platform/config:resdb_config",
+        "//platform/consensus/ordering/hs2:hs2_new_txn_pipeline",
+        "//platform/proto:resdb_cc_proto",
+    ],
+)
+
+cc_binary(
     name = "kv_service",
     srcs = ["kv_service.cpp"],
     deps = [

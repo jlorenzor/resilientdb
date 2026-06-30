@@ -12,6 +12,7 @@
 #include "platform/consensus/ordering/common/message_manager_basic.h"
 #include "platform/consensus/ordering/common/response_manager.h"
 #include "platform/consensus/ordering/hs2/hs2_consensus.h"
+#include "platform/consensus/ordering/hs2/hs2_new_txn_pipeline.h"
 #include "platform/consensus/ordering/hs2/hs2_pacemaker.h"
 #include "platform/networkstrate/consensus_manager.h"
 #include "platform/proto/resdb.pb.h"
@@ -66,6 +67,7 @@ class ConsensusManagerHs2 : public ConsensusManager {
   std::unique_ptr<MessageManagerBasic> message_manager_;
   std::unique_ptr<CommitmentBasic> commitment_;
   std::unique_ptr<common::ResponseManager> response_manager_;
+  std::unique_ptr<Hs2NewTxnPipeline> new_txn_pipeline_;
   Hs2Consensus core_;
   uint32_t leader_id_;
   uint32_t current_view_;

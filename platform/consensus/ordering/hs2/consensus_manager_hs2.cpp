@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include <glog/logging.h>
+
 #include "platform/proto/resdb.pb.h"
 
 namespace resdb {
@@ -30,6 +32,7 @@ ConsensusManagerHs2::ConsensusManagerHs2(
       response_manager_(std::make_unique<common::ResponseManager>(
           config_, GetBroadCastClient(), system_info_.get(),
           GetSignatureVerifier())),
+      new_txn_pipeline_(std::make_unique<Hs2NewTxnPipeline>(config_)),
       core_(static_cast<int>(config.GetReplicaNum())),
       leader_id_(config.GetReplicaInfos().empty()
                      ? 0
@@ -152,7 +155,8 @@ int ConsensusManagerHs2::HandleNewTransactions(
   }
 
   const bool is_leader = self_id == leader_id_;
-  const bool came_from_proxy = request->sender_id() != leader_id_;
+  const bool came_from_proxy =
+      static_cast<uint32_t>(request->sender_id()) != leader_id_;
 
   if (is_leader && came_from_proxy) {
     auto replica_request = std::make_unique<Request>(*request);
@@ -162,6 +166,24 @@ int ConsensusManagerHs2::HandleNewTransactions(
   } else if (request->sender_id() == 0) {
     request->set_sender_id(self_id);
   }
+
+  const auto certification =
+      new_txn_pipeline_->Certify(request.get(), leader_id_, current_view_);
+  if (!certification.committed) {
+    LOG(ERROR) << "CHATAY_HS2_PIPELINE rejected"
+               << " seq=" << request->seq()
+               << " view=" << request->current_view()
+               << " leader=" << leader_id_
+               << " reason=" << certification.reason;
+    return kNotImplementedYet;
+  }
+
+  LOG(INFO) << "CHATAY_HS2_PIPELINE certified"
+            << " seq=" << request->seq()
+            << " view=" << request->current_view()
+            << " leader=" << leader_id_
+            << " block=" << certification.block.block_hash
+            << " phase2_voters=" << certification.phase2_qc.voters.size();
 
   return message_manager_->Commit(std::move(request));
 }

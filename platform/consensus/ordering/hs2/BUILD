@@ -15,6 +15,7 @@ cc_library(
     hdrs = ["consensus_manager_hs2.h"],
     deps = [
         ":hs2_core",
+        ":hs2_new_txn_pipeline",
         "//executor/common:custom_query",
         "//executor/common:transaction_manager",
         "//platform/consensus/execution:system_info",
@@ -24,6 +25,21 @@ cc_library(
         "//platform/consensus/ordering/common:response_manager",
         "//platform/config:resdb_config",
         "//platform/networkstrate:consensus_manager",
+        "//platform/proto:resdb_cc_proto",
+    ],
+    visibility = [
+        "//visibility:public",
+    ],
+)
+
+cc_library(
+    name = "hs2_new_txn_pipeline",
+    srcs = ["hs2_new_txn_pipeline.cpp"],
+    hdrs = ["hs2_new_txn_pipeline.h"],
+    deps = [
+        ":hs2_core",
+        "//common/crypto:signature_verifier",
+        "//platform/config:resdb_config",
         "//platform/proto:resdb_cc_proto",
     ],
     visibility = [
