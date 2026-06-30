@@ -6,8 +6,9 @@
 ResilientDB fork.
 
 ```txt
-runId=20260630T041734Z-hs1-kv
+runId=20260630T042133Z-hs1-kv
 status=RUNTIME_SMOKE_PASSED
+commit=2e1249d428c340581d887ef9c684ac83bb15e344
 replicaCount=4
 clientProcessCount=1
 totalProcessCount=5
@@ -39,7 +40,7 @@ docker run --rm \
 - `client-get-030.log` returned the expected value:
 
 ```txt
-chatay-hs1-value-20260630T041734Z-hs1-kv-030
+chatay-hs1-value-20260630T042133Z-hs1-kv-030
 ```
 
 ## Raw Evidence Location
@@ -47,7 +48,7 @@ chatay-hs1-value-20260630T041734Z-hs1-kv-030
 Raw logs were generated locally under:
 
 ```txt
-documents/chatay-porting/v2.14.6-alpha.1/logs/20260630T041734Z-hs1-kv
+documents/chatay-porting/v2.14.6-alpha.1/logs/20260630T042133Z-hs1-kv
 ```
 
 The raw `logs/` tree is not committed because it contains ephemeral key and

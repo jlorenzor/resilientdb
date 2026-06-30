@@ -75,7 +75,7 @@ docker run --rm \
 ## Validated run
 
 ```txt
-runId=20260630T041734Z-hs1-kv
+runId=20260630T042133Z-hs1-kv
 status=RUNTIME_SMOKE_PASSED
 replicaCount=4
 clientProcessCount=1
