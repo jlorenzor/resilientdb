@@ -8,7 +8,7 @@ visible to Bazel and can build inside the existing ResilientDB toolchain image.
 ## Branch
 
 ```txt
-codex/hs1-bazel-reconcile-v2.14.5-alpha.1
+consensus/hs1-bazel-reconcile-v2.14.5-alpha.1
 ```
 
 ## Toolchain

@@ -2,7 +2,7 @@
 
 ## Completed
 
-- [x] Created branch `codex/hs1-bazel-reconcile-v2.14.5-alpha.1`.
+- [x] Created branch `consensus/hs1-bazel-reconcile-v2.14.5-alpha.1`.
 - [x] Reused existing toolchain image `chatay-resilientdb-toolchain:bazel6-20260528`.
 - [x] Fixed `.bazelversion` LF issue for Linux Docker.
 - [x] Added `.gitattributes` rule to keep `.bazelversion` LF-only.

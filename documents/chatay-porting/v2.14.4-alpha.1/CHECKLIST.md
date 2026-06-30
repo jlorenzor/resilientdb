@@ -1,8 +1,8 @@
-﻿# HS1 Baseline Port Checklist - v2.14.4-alpha.1
+# HS1 Baseline Port Checklist - v2.14.4-alpha.1
 
 ## Completed
 
-- [x] Created fork branch `codex/hs1-baseline-tree-v2.14.4-alpha.1`.
+- [x] Created fork branch `consensus/hs1-baseline-tree-v2.14.4-alpha.1`.
 - [x] Fetched Apache PR100 as `upstream/pr/100`.
 - [x] Imported `platform/consensus/ordering/hotstuff` from PR100.
 - [x] Imported PR100 root common dependencies needed by HotStuff.

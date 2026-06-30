@@ -44,7 +44,7 @@ ce65a1ed7d3789d11fa8f154544d1bd31607fae5
 Branch:
 
 ```txt
-codex/hs2-consensus-port-v2.14.1-alpha.1
+consensus/hs2-port-v2.14.1-alpha.1
 ```
 
 ## Patch Groups
