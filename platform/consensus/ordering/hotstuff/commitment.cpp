@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include <chrono>
+#include <cstdlib>
 #include <thread>
 
 #include "common/utils/utils.h"
@@ -42,6 +43,30 @@ int64_t ColdStartNowMs() {
   return std::chrono::duration_cast<std::chrono::milliseconds>(
              std::chrono::system_clock::now().time_since_epoch())
       .count();
+}
+
+int ReadEnvInt(const char* name, int default_value, int min_value) {
+  const char* raw_value = std::getenv(name);
+  if (raw_value == nullptr || raw_value[0] == '\0') {
+    return default_value;
+  }
+  char* end = nullptr;
+  const long parsed = std::strtol(raw_value, &end, 10);
+  if (end == raw_value || *end != '\0') {
+    LOG(ERROR) << "CHATAY_HS1_COLD_START invalid_env_int"
+               << " name=" << name
+               << " value=" << raw_value
+               << " default=" << default_value;
+    return default_value;
+  }
+  if (parsed < min_value) {
+    LOG(ERROR) << "CHATAY_HS1_COLD_START clamped_env_int"
+               << " name=" << name
+               << " value=" << parsed
+               << " min=" << min_value;
+    return min_value;
+  }
+  return static_cast<int>(parsed);
 }
 
 }  // namespace
@@ -72,11 +97,18 @@ void Commitment::Init() {
   // PR100 can emit NEWVIEW before all local key material / replica channels
   // are usable in a cold local bootstrap. This delay only widens bootstrap
   // readiness; it does not change quorum, locking, QC, or vote validation.
-  const int bootstrap_wait_seconds = 2 + id_;
+  const int bootstrap_base_seconds =
+      ReadEnvInt("CHATAY_HS1_NEWVIEW_BOOTSTRAP_BASE_SEC", 2, 0);
+  const int bootstrap_stagger_by_id =
+      ReadEnvInt("CHATAY_HS1_NEWVIEW_BOOTSTRAP_STAGGER_BY_ID", 1, 0);
+  const int bootstrap_wait_seconds =
+      bootstrap_base_seconds + (bootstrap_stagger_by_id > 0 ? id_ : 0);
   LOG(ERROR) << "CHATAY_HS1_COLD_START newview_bootstrap_wait_start"
              << " ts_ms=" << ColdStartNowMs()
              << " self=" << id_
-             << " seconds=" << bootstrap_wait_seconds;
+             << " seconds=" << bootstrap_wait_seconds
+             << " base_seconds=" << bootstrap_base_seconds
+             << " stagger_by_id=" << bootstrap_stagger_by_id;
   LOG(ERROR) << "CHATAY_HS1_TRACE newview_bootstrap_wait self=" << id_
              << " seconds=" << bootstrap_wait_seconds;
   sleep(bootstrap_wait_seconds);
@@ -305,9 +337,18 @@ void Commitment::SendNewView() {
              << " target_primary=" << PrimaryId(current_view_)
              << " prepare_qc_view=" << prepare_qc.node().info().view()
              << " prepare_qc_sigs=" << prepare_qc.signatures_size();
-  for (int attempt = 1; attempt <= 3; ++attempt) {
+  const int newview_attempts =
+      ReadEnvInt("CHATAY_HS1_NEWVIEW_ATTEMPTS", 3, 1);
+  const int newview_retry_sleep_seconds =
+      ReadEnvInt("CHATAY_HS1_NEWVIEW_RETRY_SLEEP_SEC", 3, 0);
+  LOG(ERROR) << "CHATAY_HS1_COLD_START send_newview_policy"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << id_
+             << " attempts=" << newview_attempts
+             << " retry_sleep_sec=" << newview_retry_sleep_seconds;
+  for (int attempt = 1; attempt <= newview_attempts; ++attempt) {
     if (attempt > 1) {
-      sleep(3);
+      sleep(newview_retry_sleep_seconds);
     }
     LOG(ERROR) << "CHATAY_HS1_TRACE send_newview_attempt"
                << " self=" << id_
