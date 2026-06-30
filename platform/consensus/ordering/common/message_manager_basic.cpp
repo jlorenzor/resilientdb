@@ -49,4 +49,11 @@ std::unique_ptr<BatchUserResponse> MessageManagerBasic::GetResponseMsg() {
   return queue_.Pop();
 }
 
+int MessageManagerBasic::Commit(std::unique_ptr<Request> request) {
+  if (request == nullptr) {
+    return -1;
+  }
+  return transaction_executor_->Commit(std::move(request));
+}
+
 }  // namespace resdb

@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package resdb.hs2;
+
+message Hs2Block {
+  int64 height = 1;
+  int64 view = 2;
+  string block_hash = 3;
+  string parent_hash = 4;
+  string payload_digest = 5;
+  bytes payload = 6;
+  int32 proposer_id = 7;
+  int64 created_at_unix_ms = 8;
+}
+
+enum Hs2Phase {
+  HS2_PHASE_UNSPECIFIED = 0;
+  HS2_PHASE_1 = 1;
+  HS2_PHASE_2 = 2;
+}
+
+message Hs2Vote {
+  int32 replica_id = 1;
+  int64 height = 2;
+  int64 view = 3;
+  string block_hash = 4;
+  Hs2Phase phase = 5;
+  bytes signature = 6;
+}
+
+message Hs2QuorumCertificate {
+  int64 height = 1;
+  int64 view = 2;
+  string block_hash = 3;
+  Hs2Phase phase = 4;
+  repeated Hs2Vote votes = 5;
+  string aggregate_digest = 6;
+}
+
+message Hs2Proposal {
+  Hs2Block block = 1;
+  Hs2QuorumCertificate justify_qc = 2;
+  int32 leader_id = 3;
+  bytes signature = 4;
+}
+
+message Hs2Timeout {
+  int32 replica_id = 1;
+  int64 view = 2;
+  Hs2QuorumCertificate high_qc = 3;
+  bytes signature = 4;
+}
+
+message Hs2TimeoutCertificate {
+  int64 view = 1;
+  repeated Hs2Timeout timeouts = 2;
+}
+
+message Hs2CommitProof {
+  Hs2Block block = 1;
+  Hs2QuorumCertificate commit_qc = 2;
+}
+
+message Hs2ClientReply {
+  string request_id = 1;
+  string block_hash = 2;
+  int64 height = 3;
+  int64 view = 4;
+  bool committed = 5;
+}

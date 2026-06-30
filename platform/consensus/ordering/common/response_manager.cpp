@@ -25,6 +25,9 @@
 
 #include "platform/consensus/ordering/common/response_manager.h"
 
+#include <algorithm>
+#include <set>
+
 #include <glog/logging.h>
 
 #include "common/utils/utils.h"
@@ -86,6 +89,19 @@ bool ResponseManager::IsExistContextList(uint64_t id) {
 
 int ResponseManager::NewUserRequest(std::unique_ptr<Context> context,
                                     std::unique_ptr<Request> user_request) {
+  return QueueUserRequest(std::move(context), std::move(user_request), {});
+}
+
+int ResponseManager::NewUserRequestWithFallbackViews(
+    std::unique_ptr<Context> context, std::unique_ptr<Request> user_request,
+    const std::vector<uint64_t>& fallback_views) {
+  return QueueUserRequest(std::move(context), std::move(user_request),
+                          fallback_views);
+}
+
+int ResponseManager::QueueUserRequest(
+    std::unique_ptr<Context> context, std::unique_ptr<Request> user_request,
+    const std::vector<uint64_t>& fallback_views) {
   if (!user_request->need_response()) {
     context->client = nullptr;
   }
@@ -93,6 +109,7 @@ int ResponseManager::NewUserRequest(std::unique_ptr<Context> context,
   std::unique_ptr<QueueItem> queue_item = std::make_unique<QueueItem>();
   queue_item->context = std::move(context);
   queue_item->user_request = std::move(user_request);
+  queue_item->fallback_views = fallback_views;
 
   batch_queue_.Push(std::move(queue_item));
   return 0;
@@ -224,6 +241,9 @@ int ResponseManager::DoBatch(
     return ret;
   }
   batch_request.SerializeToString(new_request->mutable_data());
+  if (system_info_ != nullptr && system_info_->GetCurrentView() > 0) {
+    new_request->set_current_view(system_info_->GetCurrentView());
+  }
   if (verifier_) {
     auto signature_or = verifier_->SignMessage(new_request->data());
     if (!signature_or.ok()) {
@@ -243,12 +263,51 @@ int ResponseManager::DoBatch(
              << " local_id=" << batch_request.local_id()
              << " data_size=" << new_request->data().size()
              << " hash=" << new_request->hash();
-  LOG(INFO) << "send msg to primary:" << GetPrimary()
-            << " batch size:" << batch_req.size()
-            << " request:" << new_request->DebugString();
-  replica_communicator_->SendMessage(*new_request, GetPrimary());
+  const uint32_t primary = GetPrimary();
+  SendBatchToLeader(*new_request, primary, new_request->current_view());
+
+  std::set<uint64_t> fallback_views;
+  for (const auto& item : batch_req) {
+    fallback_views.insert(item->fallback_views.begin(),
+                          item->fallback_views.end());
+  }
+  for (uint64_t view : fallback_views) {
+    const uint32_t fallback_leader = LeaderForView(view);
+    if (fallback_leader == 0 || fallback_leader == primary) {
+      continue;
+    }
+    Request fallback_request(*new_request);
+    fallback_request.set_current_view(view);
+    LOG(INFO) << "hs2 fallback view:" << view
+              << " fallback leader:" << fallback_leader;
+    SendBatchToLeader(fallback_request, fallback_leader, view);
+  }
   send_num_++;
   return 0;
+}
+
+uint32_t ResponseManager::LeaderForView(uint64_t view) const {
+  if (view == 0) {
+    return 0;
+  }
+  std::vector<uint32_t> replica_ids;
+  for (const auto& replica : config_.GetReplicaInfos()) {
+    if (replica.id() > 0) {
+      replica_ids.push_back(replica.id());
+    }
+  }
+  if (replica_ids.empty()) {
+    return 0;
+  }
+  std::sort(replica_ids.begin(), replica_ids.end());
+  return replica_ids[(view - 1) % replica_ids.size()];
+}
+
+void ResponseManager::SendBatchToLeader(const Request& request,
+                                        uint32_t leader_id, uint64_t view) {
+  LOG(INFO) << "send msg to primary:" << leader_id << " view:" << view
+            << " request:" << request.DebugString();
+  replica_communicator_->SendMessage(request, leader_id);
 }
 
 }  // namespace common

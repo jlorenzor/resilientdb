@@ -25,6 +25,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "platform/config/resdb_config.h"
 #include "platform/consensus/execution/system_info.h"
 #include "platform/consensus/ordering/common/transaction_utils.h"
@@ -46,6 +48,10 @@ class ResponseManager {
   int NewUserRequest(std::unique_ptr<Context> context,
                      std::unique_ptr<Request> user_request);
 
+  int NewUserRequestWithFallbackViews(
+      std::unique_ptr<Context> context, std::unique_ptr<Request> user_request,
+      const std::vector<uint64_t>& fallback_views);
+
   int ProcessResponseMsg(std::unique_ptr<Context> context,
                          std::unique_ptr<Request> request);
 
@@ -54,10 +60,17 @@ class ResponseManager {
   struct QueueItem {
     std::unique_ptr<Context> context;
     std::unique_ptr<Request> user_request;
+    std::vector<uint64_t> fallback_views;
   };
+  int QueueUserRequest(std::unique_ptr<Context> context,
+                       std::unique_ptr<Request> user_request,
+                       const std::vector<uint64_t>& fallback_views);
   int DoBatch(const std::vector<std::unique_ptr<QueueItem>>& batch_req);
   int BatchProposeMsg();
   int GetPrimary();
+  uint32_t LeaderForView(uint64_t view) const;
+  void SendBatchToLeader(const Request& request, uint32_t leader_id,
+                         uint64_t view);
 
   std::vector<std::unique_ptr<Context>> FetchContextList(uint64_t id);
 

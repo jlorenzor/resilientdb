@@ -40,6 +40,7 @@ class MessageManagerBasic {
                       SystemInfo* system_info);
 
   std::unique_ptr<BatchUserResponse> GetResponseMsg();
+  int Commit(std::unique_ptr<Request> request);
 
  protected:
   ResDBConfig config_;
