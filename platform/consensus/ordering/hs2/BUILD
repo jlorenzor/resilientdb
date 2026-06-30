@@ -38,9 +38,23 @@ cc_library(
     hdrs = ["hs2_new_txn_pipeline.h"],
     deps = [
         ":hs2_core",
+        ":hs2_qc_boundary",
         "//common/crypto:signature_verifier",
         "//platform/config:resdb_config",
         "//platform/proto:resdb_cc_proto",
+    ],
+    visibility = [
+        "//visibility:public",
+    ],
+)
+
+cc_library(
+    name = "hs2_qc_boundary",
+    srcs = ["hs2_qc_boundary.cpp"],
+    hdrs = ["hs2_qc_boundary.h"],
+    deps = [
+        ":hs2_core",
+        "//common/crypto:signature_verifier",
     ],
     visibility = [
         "//visibility:public",

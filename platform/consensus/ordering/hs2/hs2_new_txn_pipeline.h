@@ -7,6 +7,7 @@
 
 #include "platform/config/resdb_config.h"
 #include "platform/consensus/ordering/hs2/hs2_consensus.h"
+#include "platform/consensus/ordering/hs2/hs2_qc_boundary.h"
 #include "platform/proto/resdb.pb.h"
 
 namespace resdb {
@@ -41,7 +42,6 @@ class Hs2NewTxnPipeline {
                                                   uint64_t view) const;
   void AttachCommitProof(Request* request,
                          const Hs2NewTxnCertification& certification) const;
-  std::vector<int> ExperimentalQuorumVoters() const;
   std::string PayloadDigest(const Request& request) const;
   std::string BlockHash(const Hs2Block& block) const;
   std::string ParentHash(const Request& request) const;
@@ -52,6 +52,9 @@ class Hs2NewTxnPipeline {
   int replica_count_;
   int quorum_size_;
   Hs2Consensus consensus_;
+  Hs2LocalVoteSource local_vote_source_;
+  Hs2VoteVerifier vote_verifier_;
+  Hs2QcBuilder qc_builder_;
   mutable std::mutex mutex_;
   std::string last_committed_block_hash_;
   int64_t last_committed_height_;

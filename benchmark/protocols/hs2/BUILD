@@ -35,6 +35,14 @@ cc_binary(
 )
 
 cc_binary(
+    name = "hs2_qc_boundary_probe",
+    srcs = ["hs2_qc_boundary_probe.cpp"],
+    deps = [
+        "//platform/consensus/ordering/hs2:hs2_qc_boundary",
+    ],
+)
+
+cc_binary(
     name = "kv_service",
     srcs = ["kv_service.cpp"],
     deps = [

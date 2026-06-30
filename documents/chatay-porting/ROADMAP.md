@@ -52,8 +52,8 @@ Do not use personal or tool-specific prefixes.
 | `v2.16.0` | Closed | Stable PBFT vs HS1 vs HS2 baseline preparation milestone. |
 | `v2.17.0-alpha.1` | Closed | Paper-to-code matrix for HS2 implementation gaps. |
 | `v2.17.1-alpha.1` | Closed | Harden `TYPE_NEW_TXNS` so KV commit is gated by the experimental HS2 block/QC/safety pipeline. |
-| `v2.17.2-alpha.1` | Next | Reduce synthetic QC assumptions by separating vote collection, QC construction and signature/verifier boundaries. |
-| `v2.17.3-alpha.1` | Pending | Bind payload digest, request hash and application execution evidence end-to-end. |
+| `v2.17.2-alpha.1` | Closed | Reduce synthetic QC assumptions by separating vote collection, QC construction and signature/verifier boundaries. |
+| `v2.17.3-alpha.1` | Next | Bind payload digest, request hash and application execution evidence end-to-end. |
 | `v2.17.4-alpha.1` | Pending | Wire HS2 custom consensus routing for proposal/vote/new-view/timeout messages. |
 | `v2.17.5-beta.1` | Pending | Warm-cluster repeated runs and destructive process tests for HS2. |
 | `v2.17.6-rc.1` | Pending | Updated HS2 conformance report after runtime hardening. |
@@ -61,8 +61,9 @@ Do not use personal or tool-specific prefixes.
 
 ## Current Gate
 
-The current gate is `v2.17.2-alpha.1`. `v2.17.1-alpha.1` proved that
-`TYPE_NEW_TXNS` can be intercepted by the HS2 pipeline before KV commit with:
+The current gate is `v2.17.3-alpha.1`. `v2.17.2-alpha.1` proved that
+QC material can be built through explicit vote collection, verification and QC
+construction boundaries while preserving:
 
 ```txt
 4 consensus replicas

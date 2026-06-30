@@ -36,6 +36,8 @@ struct Hs2QuorumCertificate {
   std::string block_hash;
   Hs2Phase phase = Hs2Phase::kPhase1;
   std::vector<int> voters;
+  std::vector<std::string> vote_signatures;
+  std::string proof_digest;
 };
 
 }  // namespace hs2

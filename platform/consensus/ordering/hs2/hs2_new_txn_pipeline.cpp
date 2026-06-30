@@ -24,6 +24,9 @@ Hs2NewTxnPipeline::Hs2NewTxnPipeline(const ResDBConfig& config)
     : replica_count_(static_cast<int>(config.GetReplicaNum())),
       quorum_size_(CalculateQuorumSize(replica_count_)),
       consensus_(replica_count_),
+      local_vote_source_(replica_count_, quorum_size_),
+      vote_verifier_(replica_count_),
+      qc_builder_(quorum_size_),
       last_committed_block_hash_("hs2-genesis"),
       last_committed_height_(0),
       last_committed_view_(0) {}
@@ -106,29 +109,29 @@ Hs2QuorumCertificate Hs2NewTxnPipeline::BuildJustifyQc(
   qc.view = last_committed_view_ > 0 ? last_committed_view_ : block.view;
   qc.block_hash = block.parent_hash.empty() ? "hs2-genesis" : block.parent_hash;
   qc.phase = Hs2Phase::kPhase2;
-  qc.voters = ExperimentalQuorumVoters();
+  qc = qc_builder_.BuildForParent(
+      qc.height, qc.view, qc.block_hash, qc.phase,
+      local_vote_source_.CreateParentVotes(qc.height, qc.view, qc.block_hash,
+                                           qc.phase));
   return qc;
 }
 
 Hs2QuorumCertificate Hs2NewTxnPipeline::BuildPhaseQc(const Hs2Block& block,
                                                      Hs2Phase phase) {
-  Hs2QuorumCertificate qc;
-  qc.height = block.height;
-  qc.view = block.view;
-  qc.block_hash = block.block_hash;
-  qc.phase = phase;
-  qc.voters = ExperimentalQuorumVoters();
-  for (int voter : qc.voters) {
-    Hs2Vote vote;
-    vote.replica_id = voter;
-    vote.height = block.height;
-    vote.view = block.view;
-    vote.block_hash = block.block_hash;
-    vote.phase = phase;
-    vote.signature = "hs2-alpha-vote-" + std::to_string(voter);
-    consensus_.RecordVote(vote);
+  Hs2VoteCollector collector(quorum_size_, &vote_verifier_);
+  for (const auto& vote : local_vote_source_.CreateVotes(block, phase)) {
+    std::string reason;
+    if (!collector.AddVote(vote, block, phase, &reason)) {
+      continue;
+    }
+    if (!consensus_.RecordVote(vote)) {
+      continue;
+    }
   }
-  return qc;
+  if (!collector.HasQuorum()) {
+    return Hs2QuorumCertificate{};
+  }
+  return qc_builder_.Build(block, phase, collector.Votes());
 }
 
 Hs2NewTxnCertification Hs2NewTxnPipeline::CertifyAlreadyCommitted(
@@ -148,13 +151,25 @@ Hs2NewTxnCertification Hs2NewTxnPipeline::CertifyAlreadyCommitted(
   result.phase1_qc.view = result.block.view;
   result.phase1_qc.block_hash = last_committed_block_hash_;
   result.phase1_qc.phase = Hs2Phase::kPhase1;
-  result.phase1_qc.voters = ExperimentalQuorumVoters();
+  result.phase1_qc = qc_builder_.BuildForParent(
+      result.block.height, result.block.view, result.block.block_hash,
+      Hs2Phase::kPhase1,
+      local_vote_source_.CreateParentVotes(result.block.height,
+                                           result.block.view,
+                                           result.block.block_hash,
+                                           Hs2Phase::kPhase1));
 
   result.phase2_qc.height = result.block.height;
   result.phase2_qc.view = result.block.view;
   result.phase2_qc.block_hash = last_committed_block_hash_;
   result.phase2_qc.phase = Hs2Phase::kPhase2;
-  result.phase2_qc.voters = ExperimentalQuorumVoters();
+  result.phase2_qc = qc_builder_.BuildForParent(
+      result.block.height, result.block.view, result.block.block_hash,
+      Hs2Phase::kPhase2,
+      local_vote_source_.CreateParentVotes(result.block.height,
+                                           result.block.view,
+                                           result.block.block_hash,
+                                           Hs2Phase::kPhase2));
   return result;
 }
 
@@ -167,16 +182,6 @@ void Hs2NewTxnPipeline::AttachCommitProof(
   proof->set_hash_type(SignatureInfo::NONE);
   proof->set_node_id(certification.block.proposer_id);
   proof->set_signature(SerializeCommitProof(certification));
-}
-
-std::vector<int> Hs2NewTxnPipeline::ExperimentalQuorumVoters() const {
-  std::vector<int> voters;
-  for (int id = 1; id <= replica_count_ &&
-                   static_cast<int>(voters.size()) < quorum_size_;
-       ++id) {
-    voters.push_back(id);
-  }
-  return voters;
 }
 
 std::string Hs2NewTxnPipeline::PayloadDigest(const Request& request) const {
@@ -221,6 +226,8 @@ std::string Hs2NewTxnPipeline::SerializeCommitProof(
     if (i > 0) proof << ",";
     proof << certification.phase2_qc.voters[i];
   }
+  proof << "|phase1_proof=" << certification.phase1_qc.proof_digest
+        << "|phase2_proof=" << certification.phase2_qc.proof_digest;
   return proof.str();
 }
 
