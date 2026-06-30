@@ -17,10 +17,10 @@ Make HS1/PR100 NEWVIEW bootstrap tunable for cold-start analysis.
 
 ## Runtime Tasks
 
-- [ ] Validate default-compatible run.
-- [ ] Validate reduced-wait experimental run.
-- [ ] Confirm `RUNTIME_SMOKE_PASSED`.
-- [ ] Confirm policy traces appear in node logs.
+- [x] Validate default-compatible run.
+- [x] Validate reduced-wait experimental run.
+- [x] Confirm `RUNTIME_SMOKE_PASSED`.
+- [x] Confirm policy traces appear in node logs.
 
 ## Exit Criteria
 
@@ -29,4 +29,13 @@ status=RUNTIME_SMOKE_PASSED
 send_newview_policy traces present
 defaults remain compatible
 reduced-wait mode is runnable or explicitly classified
+```
+
+Validated runs:
+
+```txt
+defaultRunId=20260630T043337Z-hs1-kv
+reducedWaitRunId=20260630T043427Z-hs1-kv
+status=RUNTIME_SMOKE_PASSED
+commit=e2f837865fd4264f407f05e9e9f939bea10d5509
 ```
