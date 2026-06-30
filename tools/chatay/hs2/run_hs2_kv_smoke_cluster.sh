@@ -13,6 +13,10 @@ AFTER_SET_SLEEP_SEC="${HS2_AFTER_SET_SLEEP_SEC:-2}"
 BAZEL_JOBS="${BAZEL_JOBS:-4}"
 OPERATION_COUNT="${HS2_OPERATION_COUNT:-1}"
 RUN_ID="${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)-hs2-kv}"
+STOP_NODE_AFTER_READY="${HS2_STOP_NODE_AFTER_READY:-0}"
+STOP_NODE_AFTER_READY_DELAY_SEC="${HS2_STOP_NODE_AFTER_READY_DELAY_SEC:-1}"
+SLOW_NODE_ID="${HS2_SLOW_NODE_ID:-0}"
+SLOW_NODE_DELAY_SEC="${HS2_SLOW_NODE_DELAY_SEC:-0}"
 
 ROOT="$(git rev-parse --show-toplevel)"
 TOTAL_PROCESS_COUNT=$((REPLICA_COUNT + CLIENT_PROCESS_COUNT))
@@ -67,6 +71,10 @@ write_manifest() {
   "clientTimeoutSec": ${CLIENT_TIMEOUT_SEC},
   "operationCount": ${OPERATION_COUNT},
   "passedOperations": ${passed_operations},
+  "stopNodeAfterReady": ${STOP_NODE_AFTER_READY},
+  "stopNodeAfterReadyDelaySec": ${STOP_NODE_AFTER_READY_DELAY_SEC},
+  "slowNodeId": ${SLOW_NODE_ID},
+  "slowNodeDelaySec": ${SLOW_NODE_DELAY_SEC},
   "testKey": "${TEST_KEY}",
   "testValue": "${TEST_VALUE}",
   "serverConfig": "${SERVER_CONFIG}",
@@ -104,6 +112,7 @@ log "HS2 KV smoke-cluster run ${RUN_ID}"
 log "repo=${ROOT}"
 log "replicas=${REPLICA_COUNT} client_processes=${CLIENT_PROCESS_COUNT} base_port=${BASE_PORT}"
 log "operation_count=${OPERATION_COUNT} client_timeout_sec=${CLIENT_TIMEOUT_SEC}"
+log "fault knobs stop_node_after_ready=${STOP_NODE_AFTER_READY} slow_node_id=${SLOW_NODE_ID}"
 
 (
   cd "${ROOT}"
@@ -175,6 +184,10 @@ EOF
 
 log "starting ${TOTAL_PROCESS_COUNT} hs2 kv_service processes"
 for i in $(seq 1 "${TOTAL_PROCESS_COUNT}"); do
+  if [[ "${SLOW_NODE_ID}" -eq "${i}" && "${SLOW_NODE_DELAY_SEC}" != "0" ]]; then
+    log "delaying node-${i} startup by ${SLOW_NODE_DELAY_SEC}s"
+    sleep "${SLOW_NODE_DELAY_SEC}"
+  fi
   node_log="${LOG_ROOT}/node-${i}.log"
   "${SERVER_BIN}" "${SERVER_CONFIG}" "${CERT_ROOT}/node${i}.key.pri" \
     "${CERT_ROOT}/cert_${i}.cert" > "${node_log}" 2>&1 &
@@ -217,6 +230,26 @@ if [[ "${ready_count}" -ne "${TOTAL_PROCESS_COUNT}" ]]; then
   error_code="READINESS_TIMEOUT"
   log "ERROR: readiness timeout (${ready_count}/${TOTAL_PROCESS_COUNT})"
   exit 31
+fi
+
+if [[ "${STOP_NODE_AFTER_READY}" -gt 0 ]]; then
+  if [[ "${STOP_NODE_AFTER_READY}" -gt "${TOTAL_PROCESS_COUNT}" ]]; then
+    error_code="STOP_NODE_OUT_OF_RANGE"
+    log "ERROR: stop node ${STOP_NODE_AFTER_READY} is out of range"
+    exit 32
+  fi
+  log "stopping node-${STOP_NODE_AFTER_READY} after readiness in ${STOP_NODE_AFTER_READY_DELAY_SEC}s"
+  sleep "${STOP_NODE_AFTER_READY_DELAY_SEC}"
+  stop_pid="${pids[$((STOP_NODE_AFTER_READY - 1))]}"
+  if kill -0 "${stop_pid}" >/dev/null 2>&1; then
+    kill "${stop_pid}" >/dev/null 2>&1 || true
+    printf '%s stopped node=%s pid=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      "${STOP_NODE_AFTER_READY}" "${stop_pid}" >> "${LOG_ROOT}/fault.trace"
+  else
+    error_code="STOP_NODE_ALREADY_EXITED"
+    log "ERROR: node-${STOP_NODE_AFTER_READY} already exited before fault injection"
+    exit 33
+  fi
 fi
 
 for operation_index in $(seq 1 "${OPERATION_COUNT}"); do

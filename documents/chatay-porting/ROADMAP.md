@@ -54,16 +54,16 @@ Do not use personal or tool-specific prefixes.
 | `v2.17.1-alpha.1` | Closed | Harden `TYPE_NEW_TXNS` so KV commit is gated by the experimental HS2 block/QC/safety pipeline. |
 | `v2.17.2-alpha.1` | Closed | Reduce synthetic QC assumptions by separating vote collection, QC construction and signature/verifier boundaries. |
 | `v2.17.3-alpha.1` | Closed | Bind payload digest, request hash and application execution evidence end-to-end. |
-| `v2.17.4-alpha.1` | Next | Add multi-process fault harnesses for stopped leader, stopped replica and slow startup. |
-| `v2.17.5-beta.1` | Pending | Warm-cluster repeated runs and destructive process tests for HS2. |
+| `v2.17.4-alpha.1` | Closed | Add multi-process fault harnesses for stopped leader, stopped replica and slow startup. |
+| `v2.17.5-beta.1` | Next | Warm-cluster repeated runs and destructive process tests for HS2. |
 | `v2.17.6-rc.1` | Pending | Updated HS2 conformance report after runtime hardening. |
 | `v2.18.0` | Pending | Benchmark pre-release candidate for PBFT vs HS1 vs HS2. |
 
 ## Current Gate
 
-The current gate is `v2.17.4-alpha.1`. `v2.17.3-alpha.1` proved that
-request payload, request hash, QC proof material and pre-execution evidence can
-be bound into the alpha commit proof while preserving:
+The current gate is `v2.17.5-beta.1`. `v2.17.4-alpha.1` proved that the local
+alpha runtime has a multi-process fault harness for baseline, stopped
+non-leader, slow start and stopped leader scenarios while preserving:
 
 ```txt
 4 consensus replicas
