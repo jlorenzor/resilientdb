@@ -56,15 +56,16 @@ Do not use personal or tool-specific prefixes.
 | `v2.17.3-alpha.1` | Closed | Bind payload digest, request hash and application execution evidence end-to-end. |
 | `v2.17.4-alpha.1` | Closed | Add multi-process fault harnesses for stopped leader, stopped replica and slow startup. |
 | `v2.17.5-beta.1` | Closed | Warm-cluster repeated runs and destructive process tests for HS2. |
-| `v2.17.6-rc.1` | Next | Updated HS2 conformance report after runtime hardening. |
-| `v2.18.0` | Pending | Benchmark pre-release candidate for PBFT vs HS1 vs HS2. |
+| `v2.17.6-rc.1` | Closed | Updated HS2 conformance report after runtime hardening. |
+| `v2.18.0` | Next | Benchmark pre-release candidate for PBFT vs HS1 vs HS2. |
 
 ## Current Gate
 
-The current gate is `v2.17.6-rc.1`. `v2.17.5-beta.1` proved that the local
-alpha runtime can complete repeated warm-cluster KV workloads at 30 and 100
-operations after the v2.17.4 multi-process fault harness for baseline, stopped
-non-leader, slow start and stopped leader scenarios.
+The current gate is `v2.18.0`. `v2.17.6-rc.1` consolidated the runtime
+hardening conformance report after `v2.17.5-beta.1` proved that the local alpha
+runtime can complete repeated warm-cluster KV workloads at 30 and 100 operations
+after the v2.17.4 multi-process fault harness for baseline, stopped non-leader,
+slow start and stopped leader scenarios.
 
 The preserved runtime contract remains:
 
@@ -77,9 +78,8 @@ returned value == written value
 logs under documents/chatay-porting/<semver>/logs
 ```
 
-Benchmarking remains blocked until the HS2 runtime path reduces synthetic QC
-assumptions further, freezes reproducible images and separates build,
-cold-start and warm-cluster operation timing.
+Benchmarking remains blocked until the protocol images are frozen and the
+benchmark harness separates build, cold-start and warm-cluster operation timing.
 
 ## Claim Boundary
 
@@ -91,9 +91,10 @@ The correct current wording is:
 
 ```txt
 The fork contains an experimental C++/Bazel HS2 path integrated with the
-ResilientDB KV runtime. As of v2.17.5-beta.1, TYPE_NEW_TXNS is gated by a local
+ResilientDB KV runtime. As of v2.17.6-rc.1, TYPE_NEW_TXNS is gated by a local
 HS2 block/QC/safety pipeline before commit, payload binding is verified before
-execution, multi-process fault scenarios are classified and repeated
-warm-cluster runs pass locally. Networked votes, cryptographic QC aggregation,
-network partitions and full benchmark campaigns remain future gates.
+execution, multi-process fault scenarios are classified, repeated warm-cluster
+runs pass locally and the implementation boundary is documented in a conformance
+report. Networked votes, cryptographic QC aggregation, network partitions and
+full benchmark campaigns remain future gates.
 ```
