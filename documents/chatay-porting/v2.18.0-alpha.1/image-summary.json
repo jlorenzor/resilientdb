@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "chatay-consensus-runtime-image-summary-v1",
+  "image": "chatay-resilientdb-hs2:v2.18.0-alpha.1",
+  "imageId": "sha256:87d206e1a2ad9bc0d7af662479fa45e77da5f0c82238b67249450a6576bd1224",
+  "sizeBytes": 976114081,
+  "baseImage": "chatay-resilientdb-hs2:runtime-v2.13.20-alpha.1",
+  "sourceCommit": "b7f265222bb91b97d10185e2cc0538826852485b",
+  "sourceBranch": "consensus/hs2-runtime-image-v2.18.0-alpha.1",
+  "labels": {"org.chatay.base_image":"chatay-resilientdb-hs2:runtime-v2.13.20-alpha.1","org.chatay.consensus":"hs2","org.chatay.image_role":"runtime-release","org.chatay.semver":"v2.18.0-alpha.1","org.chatay.source_branch":"consensus/hs2-runtime-image-v2.18.0-alpha.1","org.chatay.source_commit":"b7f265222bb91b97d10185e2cc0538826852485b","org.chatay.source_image":"chatay-resilientdb-hs2:runtime-v2.13.20-alpha.1"}
+}

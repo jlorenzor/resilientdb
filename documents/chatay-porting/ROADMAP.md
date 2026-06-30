@@ -57,15 +57,21 @@ Do not use personal or tool-specific prefixes.
 | `v2.17.4-alpha.1` | Closed | Add multi-process fault harnesses for stopped leader, stopped replica and slow startup. |
 | `v2.17.5-beta.1` | Closed | Warm-cluster repeated runs and destructive process tests for HS2. |
 | `v2.17.6-rc.1` | Closed | Updated HS2 conformance report after runtime hardening. |
-| `v2.18.0` | Next | Benchmark pre-release candidate for PBFT vs HS1 vs HS2. |
+| `v2.18.0-alpha.1` | Closed | Build and freeze a clean HS2 runtime image. |
+| `v2.18.1-alpha.1` | Next | Lock PBFT, HS1 and HS2 images for one comparable run. |
+| `v2.18.2-alpha.1` | Pending | Implement segmented runner: build, cold-start, warm-cluster and phase trace. |
+| `v2.18.3-beta.1` | Pending | Run local warm-cluster PBFT vs HS1 vs HS2 benchmark. |
+| `v2.18.4-beta.1` | Pending | Run cold-start benchmark separated by protocol. |
+| `v2.18.5-rc.1` | Pending | Capture real phase traces: proposal, vote, QC, commit, execution and view-change. |
+| `v2.18.6-rc.1` | Pending | Write local comparative report with explicit limits. |
+| `v2.19.0` | Pending | Freeze stable local PBFT vs HS1 vs HS2 baseline. |
 
 ## Current Gate
 
-The current gate is `v2.18.0`. `v2.17.6-rc.1` consolidated the runtime
-hardening conformance report after `v2.17.5-beta.1` proved that the local alpha
-runtime can complete repeated warm-cluster KV workloads at 30 and 100 operations
-after the v2.17.4 multi-process fault harness for baseline, stopped non-leader,
-slow start and stopped leader scenarios.
+The current gate is `v2.18.1-alpha.1`. `v2.18.0-alpha.1` froze the HS2 runtime
+image `chatay-resilientdb-hs2:v2.18.0-alpha.1` at roughly 976 MB, using the
+post-`v2.17.6-rc.1` C++ runtime sources and the previous lightweight HS2 runtime
+base.
 
 The preserved runtime contract remains:
 
@@ -78,8 +84,9 @@ returned value == written value
 logs under documents/chatay-porting/<semver>/logs
 ```
 
-Benchmarking remains blocked until the protocol images are frozen and the
-benchmark harness separates build, cold-start and warm-cluster operation timing.
+Benchmarking remains blocked until the PBFT, HS1 and HS2 protocol images are
+locked together and the benchmark harness separates build, cold-start and
+warm-cluster operation timing.
 
 ## Claim Boundary
 
@@ -91,10 +98,8 @@ The correct current wording is:
 
 ```txt
 The fork contains an experimental C++/Bazel HS2 path integrated with the
-ResilientDB KV runtime. As of v2.17.6-rc.1, TYPE_NEW_TXNS is gated by a local
-HS2 block/QC/safety pipeline before commit, payload binding is verified before
-execution, multi-process fault scenarios are classified, repeated warm-cluster
-runs pass locally and the implementation boundary is documented in a conformance
-report. Networked votes, cryptographic QC aggregation, network partitions and
-full benchmark campaigns remain future gates.
+ResilientDB KV runtime. As of v2.18.0-alpha.1, the post-hardening HS2 runtime
+has a differentiated lightweight Docker image with runtime binaries and labels.
+Networked votes, cryptographic QC aggregation, network partitions, image-based
+runtime smoke and full benchmark campaigns remain future gates.
 ```

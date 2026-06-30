@@ -1,0 +1,31 @@
+ARG BASE_IMAGE=chatay-resilientdb-hs2:runtime-v2.13.20-alpha.1
+FROM ${BASE_IMAGE}
+
+ARG CHATAY_SEMVER
+ARG SOURCE_COMMIT
+ARG SOURCE_BRANCH
+ARG BASE_IMAGE
+
+LABEL org.chatay.consensus="hs2" \
+      org.chatay.image_role="runtime-release" \
+      org.chatay.semver="${CHATAY_SEMVER}" \
+      org.chatay.source_commit="${SOURCE_COMMIT}" \
+      org.chatay.source_branch="${SOURCE_BRANCH}" \
+      org.chatay.base_image="${BASE_IMAGE}" \
+      org.chatay.source_image="${BASE_IMAGE}"
+
+WORKDIR /opt/resilientdb-hs2
+
+COPY runtime-context/bin/kv_service /opt/resilientdb-hs2/bin/kv_service
+COPY runtime-context/bin/kv_service_tools /opt/resilientdb-hs2/bin/kv_service_tools
+COPY runtime-context/bin/certificate_tools /opt/resilientdb-hs2/bin/certificate_tools
+COPY runtime-context/bin/key_generator_tools /opt/resilientdb-hs2/bin/key_generator_tools
+COPY runtime-context/bin/generate_region_config /opt/resilientdb-hs2/bin/generate_region_config
+COPY runtime-context/chatay-runtime-manifest.json /chatay-runtime-manifest.json
+COPY runtime-context/chatay-runtime-files.txt /chatay-runtime-files.txt
+
+RUN chmod +x /opt/resilientdb-hs2/bin/* && \
+    ln -sf /opt/resilientdb-hs2/bin/kv_service /usr/local/bin/chatay-hs2-kv_service && \
+    ln -sf /opt/resilientdb-hs2/bin/kv_service_tools /usr/local/bin/chatay-hs2-kv_service_tools
+
+CMD ["sleep", "infinity"]

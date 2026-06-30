@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "chatay-consensus-runtime-image-v2",
+  "protocol": "hs2",
+  "semver": "v2.18.0-alpha.1",
+  "sourceCommit": "b7f265222bb91b97d10185e2cc0538826852485b",
+  "sourceBranch": "consensus/hs2-runtime-image-v2.18.0-alpha.1",
+  "baseImage": "chatay-resilientdb-hs2:runtime-v2.13.20-alpha.1",
+  "runtimeWorkdir": "/opt/resilientdb-hs2",
+  "binaries": [
+    "kv_service",
+    "kv_service_tools",
+    "certificate_tools",
+    "key_generator_tools",
+    "generate_region_config"
+  ]
+}
+
+--- runtime files ---
+bin/certificate_tools 6387816 bytes
+bin/generate_region_config 20898 bytes
+bin/key_generator_tools 5242136 bytes
+bin/kv_service 9738208 bytes
+bin/kv_service_tools 7618992 bytes
+
+--- bin listing ---
+total 28M
+-r-xr-xr-x 1 root root 6.1M Jun 30 23:37 certificate_tools
+-r-xr-xr-x 1 root root  21K Jun 30 23:37 generate_region_config
+-r-xr-xr-x 1 root root 5.0M Jun 30 23:37 key_generator_tools
+-r-xr-xr-x 1 root root 9.3M Jun 30 23:37 kv_service
+-r-xr-xr-x 1 root root 7.3M Jun 30 23:37 kv_service_tools
