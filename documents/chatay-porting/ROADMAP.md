@@ -55,15 +55,18 @@ Do not use personal or tool-specific prefixes.
 | `v2.17.2-alpha.1` | Closed | Reduce synthetic QC assumptions by separating vote collection, QC construction and signature/verifier boundaries. |
 | `v2.17.3-alpha.1` | Closed | Bind payload digest, request hash and application execution evidence end-to-end. |
 | `v2.17.4-alpha.1` | Closed | Add multi-process fault harnesses for stopped leader, stopped replica and slow startup. |
-| `v2.17.5-beta.1` | Next | Warm-cluster repeated runs and destructive process tests for HS2. |
-| `v2.17.6-rc.1` | Pending | Updated HS2 conformance report after runtime hardening. |
+| `v2.17.5-beta.1` | Closed | Warm-cluster repeated runs and destructive process tests for HS2. |
+| `v2.17.6-rc.1` | Next | Updated HS2 conformance report after runtime hardening. |
 | `v2.18.0` | Pending | Benchmark pre-release candidate for PBFT vs HS1 vs HS2. |
 
 ## Current Gate
 
-The current gate is `v2.17.5-beta.1`. `v2.17.4-alpha.1` proved that the local
-alpha runtime has a multi-process fault harness for baseline, stopped
-non-leader, slow start and stopped leader scenarios while preserving:
+The current gate is `v2.17.6-rc.1`. `v2.17.5-beta.1` proved that the local
+alpha runtime can complete repeated warm-cluster KV workloads at 30 and 100
+operations after the v2.17.4 multi-process fault harness for baseline, stopped
+non-leader, slow start and stopped leader scenarios.
+
+The preserved runtime contract remains:
 
 ```txt
 4 consensus replicas
@@ -71,11 +74,12 @@ non-leader, slow start and stopped leader scenarios while preserving:
 KV SET
 KV GET
 returned value == written value
-logs under documents/chatay-porting/v2.17.1-alpha.1/logs
+logs under documents/chatay-porting/<semver>/logs
 ```
 
 Benchmarking remains blocked until the HS2 runtime path reduces synthetic QC
-assumptions and records repeatable warm-cluster behavior.
+assumptions further, freezes reproducible images and separates build,
+cold-start and warm-cluster operation timing.
 
 ## Claim Boundary
 
@@ -87,7 +91,9 @@ The correct current wording is:
 
 ```txt
 The fork contains an experimental C++/Bazel HS2 path integrated with the
-ResilientDB KV runtime. As of v2.17.1-alpha.1, TYPE_NEW_TXNS is gated by a local
-HS2 block/QC/safety pipeline before commit, but networked votes, cryptographic
-QC aggregation and destructive fault campaigns remain future gates.
+ResilientDB KV runtime. As of v2.17.5-beta.1, TYPE_NEW_TXNS is gated by a local
+HS2 block/QC/safety pipeline before commit, payload binding is verified before
+execution, multi-process fault scenarios are classified and repeated
+warm-cluster runs pass locally. Networked votes, cryptographic QC aggregation,
+network partitions and full benchmark campaigns remain future gates.
 ```
