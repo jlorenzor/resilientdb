@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "chatay-protocol-image-inventory-v1",
+  "semver": "v2.18.1-alpha.1",
+  "sourceCommit": "4657541666912a218423e74dccc930ad11696748",
+  "sourceBranch": "consensus/protocol-image-inventory-v2.18.1-alpha.1",
+  "images": [
+    {
+      "protocol": "pbft",
+      "role": "PBFT baseline",
+      "image": "chatay-resilientdb-pbft:runtime-v2.13.20-alpha.1",
+      "imageId": "sha256:321310ca4691f429087d1b49e14f7f5e4e3c2b8f3d353aa859d72bb16bb64269",
+      "sizeBytes": 1011062608,
+      "created": "2026-06-29T13:09:49.364261001Z",
+      "notes": "ResilientDB PBFT runtime baseline",
+      "labels": {"org.chatay.consensus":"pbft","org.chatay.image_role":"runtime-release","org.chatay.source_image":"chatay-resilientdb-pbft:baseline-20260528"}
+    },
+    {
+      "protocol": "hs1-pr100",
+      "role": "HS1/PR100 bridge",
+      "image": "chatay-resilientdb-hs1-pr100:v2.14.10-beta.1",
+      "imageId": "sha256:685173b06c9274d1e6a63327143001a030915853d10daa5fbaf843b3bc2a5717",
+      "sizeBytes": 976420827,
+      "created": "2026-06-30T12:33:30.353124509Z",
+      "notes": "HotStuff-like PR100 runtime bridge",
+      "labels": {"org.chatay.base_image":"chatay-resilientdb-hs1-pr100:runtime-v2.13.20-alpha.1","org.chatay.consensus":"hs1-pr100","org.chatay.image_role":"runtime-release","org.chatay.semver":"v2.14.10-beta.1","org.chatay.source_branch":"consensus/hs1-runtime-image-v2.14.10-beta.1","org.chatay.source_commit":"ed4c1d7e3b1ecf168cd3bfc56eac864ca61d2eeb","org.chatay.source_image":"chatay-resilientdb-hs1-pr100:44ce20a-warm-continuity-rc6"}
+    },
+    {
+      "protocol": "hs2",
+      "role": "HS2 experimental",
+      "image": "chatay-resilientdb-hs2:v2.18.0-alpha.1",
+      "imageId": "sha256:87d206e1a2ad9bc0d7af662479fa45e77da5f0c82238b67249450a6576bd1224",
+      "sizeBytes": 976114081,
+      "created": "2026-06-30T23:37:51.928018467Z",
+      "notes": "Post-hardening HS2 experimental runtime",
+      "labels": {"org.chatay.base_image":"chatay-resilientdb-hs2:runtime-v2.13.20-alpha.1","org.chatay.consensus":"hs2","org.chatay.image_role":"runtime-release","org.chatay.semver":"v2.18.0-alpha.1","org.chatay.source_branch":"consensus/hs2-runtime-image-v2.18.0-alpha.1","org.chatay.source_commit":"b7f265222bb91b97d10185e2cc0538826852485b","org.chatay.source_image":"chatay-resilientdb-hs2:runtime-v2.13.20-alpha.1"}
+    }
+  ]
+}
