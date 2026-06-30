@@ -2,15 +2,23 @@
 
 ## Objective
 
-Run HS1/PR100 from fork-built binaries in a 4-node local cluster and validate a
-KV `set/get` path.
+Run HS1/PR100 from fork-built binaries in a local cluster and validate a KV
+`set/get` path.
+
+ResilientDB's KV runtime uses four consensus replicas plus a client/gateway
+process. Therefore the runtime gate starts:
+
+```txt
+4 replica processes
+1 client/gateway process
+```
 
 ## Starting point
 
 Branch:
 
 ```txt
-consensus/hs1-bazel-reconcile-v2.14.5-alpha.1
+consensus/hs1-kv-runtime-v2.14.6-alpha.1
 ```
 
 Known passing build targets:
@@ -21,41 +29,64 @@ Known passing build targets:
 //benchmark/protocols/hotstuff:kv_server_performance
 ```
 
-## Recommended next branch
+## Runner
 
 ```txt
-consensus/hs1-kv-runtime-v2.14.6-alpha.1
+tools/chatay/hs1/run_hs1_kv_warm_cluster.sh
 ```
 
-## First commands to retry
+The runner performs:
+
+1. Bazel build for the HS1 service and KV client tools.
+2. Key/certificate generation for local processes.
+3. ResilientDB config generation.
+4. HS1 `kv_service` startup for four replicas and one client/gateway process.
+5. Readiness detection from real ResilientDB logs.
+6. KV `SET` and `GET`, each guarded by `HS1_CLIENT_TIMEOUT_SEC`.
+7. Manifest and logs under `documents/chatay-porting/v2.14.6-alpha.1/logs`.
+
+## Command
 
 ```bash
 docker run --rm \
+  -e HS1_CLIENT_TIMEOUT_SEC=30 \
+  -e HS1_OPERATION_COUNT=30 \
   -v "<fork>:/workspace" \
   -v chatay-bazel-cache:/root/.cache/bazel \
   -w /workspace \
   chatay-resilientdb-toolchain:bazel6-20260528 \
-  bazel build --jobs=4 //benchmark/protocols/hotstuff:kv_service
-```
-
-Then inspect:
-
-```txt
-bazel-bin/benchmark/protocols/hotstuff/kv_service
+  bash tools/chatay/hs1/run_hs1_kv_warm_cluster.sh
 ```
 
 ## Runtime checklist
 
-- [ ] Create branch `consensus/hs1-kv-runtime-v2.14.6-alpha.1`.
-- [ ] Locate existing config/key generation scripts.
-- [ ] Start 4 HS1 nodes with `kv_service`.
-- [ ] Capture one log file per node.
-- [ ] Add readiness timestamps.
-- [ ] Send KV `SET`.
-- [ ] Send KV `GET`.
-- [ ] Verify returned value.
-- [ ] Save evidence under `documents/chatay-porting/v2.14.6-alpha.1/logs`.
-- [ ] If runtime fails, classify as config/key/network/readiness/consensus.
+- [x] Create branch `consensus/hs1-kv-runtime-v2.14.6-alpha.1`.
+- [x] Locate existing config/key generation scripts.
+- [x] Start script for 4 HS1 replicas plus 1 client/gateway process.
+- [x] Capture one log file per process.
+- [x] Add readiness timestamps.
+- [x] Add timeout classification for client `SET` and `GET`.
+- [x] Send KV `SET` step in runner.
+- [x] Send KV `GET` step in runner.
+- [x] Verify returned value in a successful run.
+- [x] Save evidence under `documents/chatay-porting/v2.14.6-alpha.1/logs`.
+- [x] Classify result as config/key/network/readiness/client/consensus.
+
+## Validated run
+
+```txt
+runId=20260630T041734Z-hs1-kv
+status=RUNTIME_SMOKE_PASSED
+replicaCount=4
+clientProcessCount=1
+operationCount=30
+passedOperations=30
+ready=5/5
+```
+
+See `EVIDENCE.md` for the reproducible evidence summary. Raw runtime logs are
+kept locally but are intentionally not committed because the generated folder
+contains ephemeral private keys and certificates.
 
 ## Claim boundary
 

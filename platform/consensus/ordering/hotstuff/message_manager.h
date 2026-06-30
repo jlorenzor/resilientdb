@@ -47,6 +47,7 @@ class MessageManager : public MessageManagerBasic {
  private:
   QC lock_qc_, prepare_qc_;
   std::mutex mutex_;
+  int64_t next_execute_seq_ = 1;
 };
 
 }  // namespace hotstuff

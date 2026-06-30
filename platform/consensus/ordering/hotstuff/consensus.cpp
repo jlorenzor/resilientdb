@@ -76,6 +76,12 @@ int Consensus::ConsensusCommit(std::unique_ptr<Context> context,
                                std::unique_ptr<Request> request) {
   // LOG(ERROR)<<"get request:"<<Request::Type_Name(request->type())<<"
   // from:"<<request->sender_id();
+  LOG(ERROR) << "CHATAY_HS1_TRACE consensus_commit"
+             << " self=" << config_.GetSelfInfo().id()
+             << " request_type=" << Request::Type_Name(request->type())
+             << " sender=" << request->sender_id()
+             << " proxy=" << request->proxy_id()
+             << " data_size=" << request->data().size();
   switch (request->type()) {
     case Request::TYPE_CLIENT_REQUEST:
       if (config_.IsPerformanceRunning()) {
@@ -91,7 +97,20 @@ int Consensus::ConsensusCommit(std::unique_ptr<Context> context,
       return response_manager_->ProcessResponseMsg(std::move(context),
                                                    std::move(request));
     case Request::TYPE_NEW_TXNS:
-      return commitment_->ProcessNewRequest(Decode(*request));
+    {
+      auto hotstuff_request = std::make_unique<HotStuffRequest>();
+      hotstuff_request->mutable_node()->set_data(request->data());
+      hotstuff_request->mutable_node()->set_proxy_id(request->proxy_id());
+      hotstuff_request->set_sender_id(request->sender_id());
+      hotstuff_request->set_view(0);
+      LOG(ERROR) << "CHATAY_HS1_TRACE wrap_new_txns"
+                 << " self=" << config_.GetSelfInfo().id()
+                 << " sender=" << request->sender_id()
+                 << " proxy=" << request->proxy_id()
+                 << " data_size=" << request->data().size()
+                 << " hash=" << request->hash();
+      return commitment_->ProcessNewRequest(std::move(hotstuff_request));
+    }
     default:
       return commitment_->Process(Decode(*request));
   }

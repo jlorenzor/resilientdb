@@ -28,6 +28,8 @@
 #include <glog/logging.h>
 #include <unistd.h>
 
+#include <thread>
+
 #include "common/utils/utils.h"
 
 namespace resdb {
@@ -46,6 +48,19 @@ Commitment::~Commitment() {}
 
 void Commitment::Init() {
   current_view_ = 0;
+  LOG(ERROR) << "CHATAY_HS1_TRACE commitment_init"
+             << " self=" << id_
+             << " current_view=" << current_view_
+             << " primary_next=" << PrimaryId(current_view_ + 1)
+             << " quorum=" << config_.GetMinDataReceiveNum();
+  // Chatay HS1 v2.11.3-beta.2:
+  // PR100 can emit NEWVIEW before all local key material / replica channels
+  // are usable in a cold local bootstrap. This delay only widens bootstrap
+  // readiness; it does not change quorum, locking, QC, or vote validation.
+  const int bootstrap_wait_seconds = 2 + id_;
+  LOG(ERROR) << "CHATAY_HS1_TRACE newview_bootstrap_wait self=" << id_
+             << " seconds=" << bootstrap_wait_seconds;
+  sleep(bootstrap_wait_seconds);
   SendNewView();
 }
 
@@ -141,6 +156,14 @@ class Timer {
 // 3. Primary receives 2f+1 votes for prepare, sends out a pre-commit message.
 int Commitment::Process(std::unique_ptr<HotStuffRequest> request) {
   Timer timer(HotStuffRequest_Type_Name(request->type()));
+  LOG(ERROR) << "CHATAY_HS1_TRACE commitment_process"
+             << " self=" << id_
+             << " type=" << HotStuffRequest_Type_Name(request->type())
+             << " request_view=" << request->view()
+             << " node_view=" << request->node().info().view()
+             << " qc_view=" << request->qc().node().info().view()
+             << " sender=" << request->sender_id()
+             << " current_view=" << current_view_;
   switch (request->type()) {
     case HotStuffRequest::TYPE_NEWREQUEST:
       return ProcessNewRequest(std::move(request));
@@ -176,16 +199,53 @@ int Commitment::ProcessNewRequest(std::unique_ptr<HotStuffRequest> request) {
   request->mutable_node()->mutable_info()->set_hash(
       SignatureVerifier::CalculateHash(request->node().data()));
   global_stats_->IncClientRequest();
+  const bool queue_empty_before = request_list_.Empty();
+  LOG(ERROR) << "CHATAY_HS1_TRACE new_request_queued"
+             << " self=" << id_
+             << " request_view=" << request->view()
+             << " node_view=" << request->node().info().view()
+             << " current_view=" << current_view_
+             << " primary_current=" << PrimaryId(current_view_)
+             << " queue_empty_before=" << queue_empty_before
+             << " proxy=" << request->node().proxy_id()
+             << " data_size=" << request->node().data().size()
+             << " hash=" << request->node().info().hash();
   request_list_.Push(std::move(request));
+  LOG(ERROR) << "CHATAY_HS1_TRACE new_request_push_done"
+             << " self=" << id_
+             << " current_view=" << current_view_
+             << " queue_empty_after=" << request_list_.Empty();
   return 0;
 }
 
 std::unique_ptr<HotStuffRequest> Commitment::GetClientRequest() {
+  int64_t wait_loops = 0;
+  const int64_t wait_ms = config_.ClientBatchWaitTimeMS();
   while (!stop_) {
-    auto request = request_list_.Pop(config_.ClientBatchWaitTimeMS());
+    const bool queue_empty_before = request_list_.Empty();
+    auto request = request_list_.Pop(wait_ms);
     if (request == nullptr) {
+      wait_loops++;
+      if (wait_loops == 1 || wait_loops % 50 == 0) {
+        LOG(ERROR) << "CHATAY_HS1_TRACE client_request_wait_timeout"
+                   << " self=" << id_
+                   << " current_view=" << current_view_
+                   << " wait_ms=" << wait_ms
+                   << " wait_loops=" << wait_loops
+                   << " queue_empty_before=" << queue_empty_before
+                   << " queue_empty_after=" << request_list_.Empty();
+      }
       continue;
     }
+    LOG(ERROR) << "CHATAY_HS1_TRACE client_request_dequeued"
+               << " self=" << id_
+               << " request_view=" << request->view()
+               << " node_view=" << request->node().info().view()
+               << " current_view=" << current_view_
+               << " wait_loops=" << wait_loops
+               << " queue_empty_after=" << request_list_.Empty()
+               << " proxy=" << request->node().proxy_id()
+               << " data_size=" << request->node().data().size();
     return request;
   }
   return nullptr;
@@ -202,23 +262,78 @@ void Commitment::SendNewView() {
   current_view_++;
   // LOG(ERROR) << "send new msg view:" << current_view_<<" to
   // primary:"<<PrimaryId(current_view_); send vote to the primary.
-  replica_communicator_->SendMessage(*vote_request, PrimaryId(current_view_));
+  LOG(ERROR) << "CHATAY_HS1_TRACE send_newview"
+             << " self=" << id_
+             << " request_view=" << user_request->view()
+             << " current_view_after_increment=" << current_view_
+             << " target_primary=" << PrimaryId(current_view_)
+             << " prepare_qc_view=" << prepare_qc.node().info().view()
+             << " prepare_qc_sigs=" << prepare_qc.signatures_size();
+  for (int attempt = 1; attempt <= 3; ++attempt) {
+    if (attempt > 1) {
+      sleep(3);
+    }
+    LOG(ERROR) << "CHATAY_HS1_TRACE send_newview_attempt"
+               << " self=" << id_
+               << " attempt=" << attempt
+               << " target_primary=" << PrimaryId(current_view_);
+    replica_communicator_->SendMessage(*vote_request, PrimaryId(current_view_));
+  }
 }
 
 // 1. Obtain the highQC from 2f+1 new view messages.
 // 2. Create a leave on the hightQC.
 // 3. Broadcast a prepare message.
 int Commitment::ProcessNewView(int64_t view_number) {
+  LOG(ERROR) << "CHATAY_HS1_TRACE process_newview_enter"
+             << " self=" << id_
+             << " view=" << view_number
+             << " expected_primary=" << PrimaryId(view_number)
+             << " current_view=" << current_view_;
   if (PrimaryId(view_number) != id_) {
     LOG(ERROR) << "not current primary:" << view_number;
     return -2;
   }
+  LOG(ERROR) << "CHATAY_HS1_TRACE process_newview_waiting_request"
+             << " self=" << id_
+             << " view=" << view_number
+             << " current_view=" << current_view_
+             << " queue_empty_before=" << request_list_.Empty();
   auto user_request = GetClientRequest();
   if (user_request == nullptr) {
+    LOG(ERROR) << "CHATAY_HS1_TRACE process_newview_no_request"
+               << " self=" << id_
+               << " view=" << view_number
+               << " current_view=" << current_view_
+               << " queue_empty_after=" << request_list_.Empty();
     LOG(ERROR) << "data is empty";
     return -2;
   }
   QC high_qc = GetHighQC(view_number - 1);
+  QC prepare_qc = message_manager_->GetPrepareQC();
+  LOG(ERROR) << "CHATAY_HS1_TRACE process_newview_highqc_candidate"
+             << " self=" << id_
+             << " view=" << view_number
+             << " high_qc_view=" << high_qc.node().info().view()
+             << " high_qc_sigs=" << high_qc.signatures_size()
+             << " prepare_qc_view=" << prepare_qc.node().info().view()
+             << " prepare_qc_sigs=" << prepare_qc.signatures_size();
+  if (prepare_qc.node().info().view() > high_qc.node().info().view() ||
+      (high_qc.signatures_size() == 0 && prepare_qc.signatures_size() > 0)) {
+    LOG(ERROR) << "CHATAY_HS1_TRACE process_newview_highqc_fallback_prepareqc"
+               << " self=" << id_
+               << " view=" << view_number
+               << " from_high_qc_view=" << high_qc.node().info().view()
+               << " to_prepare_qc_view=" << prepare_qc.node().info().view();
+    high_qc = prepare_qc;
+  }
+  LOG(ERROR) << "CHATAY_HS1_TRACE process_newview_prepare"
+             << " self=" << id_
+             << " view=" << view_number
+             << " high_qc_view=" << high_qc.node().info().view()
+             << " high_qc_sigs=" << high_qc.signatures_size()
+             << " user_data_size=" << user_request->node().data().size()
+             << " proxy=" << user_request->node().proxy_id();
   // LOG(ERROR) << "receive new view. view number:" << view_number;
   // LOG(ERROR) << "high qc:" << high_qc.node().info().view()<<"
   // hash:"<<high_qc.node().info().hash();
@@ -230,6 +345,11 @@ int Commitment::ProcessNewView(int64_t view_number) {
       NewRequest(*user_request, HotStuffRequest::TYPE_PREPARE);
   current_view_ = view_number;
   // LOG(ERROR) << "new view start:" << current_view_;
+  LOG(ERROR) << "CHATAY_HS1_TRACE broadcast_prepare"
+             << " self=" << id_
+             << " view=" << view_number
+             << " request_type=TYPE_PREPARE"
+             << " data_size=" << new_request->data().size();
   replica_communicator_->BroadCast(*new_request);
   return 0;
 }
@@ -246,6 +366,12 @@ std::unique_ptr<HotStuffRequest> Commitment::GetNewViewMessage(
     LOG(ERROR) << "data is empty";
     return nullptr;
   }
+  LOG(ERROR) << "CHATAY_HS1_TRACE get_newview_message"
+             << " self=" << id_
+             << " view=" << view_number
+             << " high_qc_view=" << high_qc.node().info().view()
+             << " high_qc_sigs=" << high_qc.signatures_size()
+             << " user_data_size=" << user_request->node().data().size();
   *user_request->mutable_node()->mutable_pre() = high_qc.node().info();
   user_request->mutable_node()->mutable_info()->set_view(view_number);
   user_request->set_view(view_number);
@@ -298,16 +424,34 @@ bool Commitment::VerifyTS(const HotStuffRequest& request) {
 int Commitment::ProcessMessageOnPrimary(
     std::unique_ptr<HotStuffRequest> request) {
   HotStuffRequest::Type type = (HotStuffRequest::Type)request->type();
+  LOG(ERROR) << "CHATAY_HS1_TRACE primary_enter"
+             << " self=" << id_
+             << " type=" << HotStuffRequest_Type_Name(type)
+             << " request_view=" << request->view()
+             << " node_view=" << request->node().info().view()
+             << " qc_view=" << request->qc().node().info().view()
+             << " sender=" << request->sender_id()
+             << " current_view=" << current_view_;
   // LOG(INFO) << "primary get type:" << HotStuffRequest_Type_Name(type)
   //           << " view:" << request->node().info().view()
   //           << " from:" << request->sender_id();
   if (type != HotStuffRequest::TYPE_NEWVIEW) {
     if (!VerifyNodeSignagure(*request)) {
+      LOG(ERROR) << "CHATAY_HS1_TRACE primary_reject_node_signature"
+                 << " self=" << id_
+                 << " type=" << HotStuffRequest_Type_Name(type)
+                 << " sender=" << request->sender_id()
+                 << " request_view=" << request->view();
       LOG(ERROR) << "signature invalid";
       return -2;
     }
   } else {
     if (PrimaryId(request->view() + 1) != id_) {
+      LOG(ERROR) << "CHATAY_HS1_TRACE primary_reject_wrong_newview_primary"
+                 << " self=" << id_
+                 << " sender=" << request->sender_id()
+                 << " request_view=" << request->view()
+                 << " expected_primary=" << PrimaryId(request->view() + 1);
       LOG(ERROR) << "not current primary:" << request->view() + 1;
       return -2;
     }
@@ -319,6 +463,11 @@ int Commitment::ProcessMessageOnPrimary(
   int32_t sender_id = request->sender_id();
   int receive_size = 0;
   if (view_num < current_view_ - 5) {
+    LOG(ERROR) << "CHATAY_HS1_TRACE primary_reject_old_view"
+               << " self=" << id_
+               << " type=" << HotStuffRequest_Type_Name(type)
+               << " view=" << view_num
+               << " current_view=" << current_view_;
     LOG(ERROR) << " view :" << view_num
                << " is too old, current view:" << current_view_;
     return -2;
@@ -328,6 +477,11 @@ int Commitment::ProcessMessageOnPrimary(
     auto ret =
         received_senders_[view_num % 128][type].insert(request->sender_id());
     if (!ret.second) {
+      LOG(ERROR) << "CHATAY_HS1_TRACE primary_duplicate_sender"
+                 << " self=" << id_
+                 << " type=" << HotStuffRequest_Type_Name(type)
+                 << " sender=" << request->sender_id()
+                 << " view=" << request->view();
       LOG(ERROR) << "sender:" << request->sender_id()
                  << " has been received. view:" << request->view();
       return -2;
@@ -348,7 +502,21 @@ int Commitment::ProcessMessageOnPrimary(
   //            << " view:" << view_num << " qc view:" << qc_view
   //            << " from:" << sender_id << " node view:" << node_view;
   // if have received 2f+1 votes, broadcast next message.
+  LOG(ERROR) << "CHATAY_HS1_TRACE primary_receive_count"
+             << " self=" << id_
+             << " type=" << HotStuffRequest_Type_Name(type)
+             << " view=" << view_num
+             << " sender=" << sender_id
+             << " node_view=" << node_view
+             << " qc_view=" << qc_view
+             << " receive_size=" << receive_size
+             << " quorum=" << config_.GetMinDataReceiveNum();
   if (receive_size == config_.GetMinDataReceiveNum()) {
+    LOG(ERROR) << "CHATAY_HS1_TRACE primary_quorum_reached"
+               << " self=" << id_
+               << " type=" << HotStuffRequest_Type_Name(type)
+               << " view=" << view_num
+               << " receive_size=" << receive_size;
     if (type == HotStuffRequest::TYPE_NEWVIEW) {
       // Only for the first view to boost up the server.
       return ProcessNewView(view_num + 1);
@@ -361,16 +529,21 @@ int Commitment::ProcessMessageOnPrimary(
 
     if (type == HotStuffRequest::TYPE_PREPARE_VOTE &&
         view_num == current_view_) {
-      //	    LOG(ERROR)<<"get new view :"<<view_num+1;
-      auto new_user_request = GetNewViewMessage(view_num + 1);
-
-      new_user_request->set_sender_id(id_);
-      *new_hotstuff_request.mutable_new_user_request() = *new_user_request;
-
       std::unique_ptr<Request> new_request = NewRequest(new_hotstuff_request);
+      LOG(ERROR) << "CHATAY_HS1_TRACE primary_broadcast_next_nonblocking"
+                 << " self=" << id_
+                 << " type=" << HotStuffRequest_Type_Name(type)
+                 << " next_type=TYPE_PRECOMMIT"
+                 << " view=" << view_num
+                 << " data_size=" << new_request->data().size();
       replica_communicator_->BroadCast(*new_request);
     } else {
       std::unique_ptr<Request> new_request = NewRequest(new_hotstuff_request);
+      LOG(ERROR) << "CHATAY_HS1_TRACE primary_broadcast_next"
+                 << " self=" << id_
+                 << " type=" << HotStuffRequest_Type_Name(type)
+                 << " view=" << view_num
+                 << " data_size=" << new_request->data().size();
       replica_communicator_->BroadCast(*new_request);
     }
   }
@@ -379,6 +552,14 @@ int Commitment::ProcessMessageOnPrimary(
 
 int Commitment::ProcessMessageOnReplica(
     std::unique_ptr<HotStuffRequest> request) {
+  LOG(ERROR) << "CHATAY_HS1_TRACE replica_enter"
+             << " self=" << id_
+             << " type=" << HotStuffRequest_Type_Name(request->type())
+             << " request_view=" << request->view()
+             << " node_view=" << request->node().info().view()
+             << " qc_view=" << request->qc().node().info().view()
+             << " sender=" << request->sender_id()
+             << " current_view=" << current_view_;
   // LOG(ERROR) << "Replica receive type:"
   //            << HotStuffRequest_Type_Name(request->type())
   //            << " node view:" << request->node().info().view()
@@ -401,15 +582,28 @@ int Commitment::ProcessMessageOnReplica(
   if (request->type() == HotStuffRequest::TYPE_PREPARE) {
     // node's pre is highQC
     if (request->node().pre().hash() != request->qc().node().info().hash()) {
+      LOG(ERROR) << "CHATAY_HS1_TRACE replica_reject_highqc_hash"
+                 << " self=" << id_
+                 << " type=" << HotStuffRequest_Type_Name(request->type())
+                 << " request_view=" << request->view();
       LOG(ERROR) << "high qc hash not same";
       return -2;
     }
     if (!message_manager_->IsSaveNode(*request)) {
+      LOG(ERROR) << "CHATAY_HS1_TRACE replica_reject_not_safe"
+                 << " self=" << id_
+                 << " type=" << HotStuffRequest_Type_Name(request->type())
+                 << " request_view=" << request->view();
       LOG(ERROR) << "not safe node";
       return -2;
     }
   } else {
     if (!VerifyTS(*request)) {
+      LOG(ERROR) << "CHATAY_HS1_TRACE replica_reject_ts"
+                 << " self=" << id_
+                 << " type=" << HotStuffRequest_Type_Name(request->type())
+                 << " request_view=" << request->view()
+                 << " qc_sigs=" << request->qc().signatures_size();
       LOG(ERROR) << " ts not invlid"
                  << " request type:"
                  << HotStuffRequest_Type_Name(request->type());
@@ -425,6 +619,43 @@ int Commitment::ProcessMessageOnReplica(
   message_manager_->UpdateNode(*request);
   if (request->type() == HotStuffRequest::TYPE_DECIDE) {
     // execute and send new view
+    LOG(ERROR) << "CHATAY_HS1_TRACE replica_decide_commit"
+               << " self=" << id_
+               << " view=" << request->qc().node().info().view()
+               << " proxy=" << request->qc().node().proxy_id()
+               << " data_size=" << request->qc().node().data().size();
+    if (id_ == 1) {
+      const int64_t replica_count = config_.GetReplicaInfos().size();
+      const int64_t next_view = current_view_ + replica_count;
+      LOG(ERROR) << "CHATAY_HS1_TRACE warm_cluster_entry_loop_evaluate"
+                 << " self=" << id_
+                 << " current_view=" << current_view_
+                 << " decided_view=" << request->qc().node().info().view()
+                 << " next_view=" << next_view
+                 << " expected_primary=" << PrimaryId(next_view)
+                 << " replica_count=" << replica_count
+                 << " queue_empty_before=" << request_list_.Empty();
+      std::thread([this, next_view, replica_count]() {
+        const int64_t view_slot = next_view % 128;
+        {
+          std::unique_lock<std::mutex> lk(mutex_[view_slot]);
+          received_senders_[view_slot].clear();
+          received_requests_[view_slot].clear();
+        }
+        LOG(ERROR) << "CHATAY_HS1_TRACE warm_cluster_entry_loop_start"
+                   << " self=" << id_
+                   << " view=" << next_view
+                   << " expected_primary=" << PrimaryId(next_view)
+                   << " replica_count=" << replica_count
+                   << " queue_empty_before_process=" << request_list_.Empty();
+        const int ret = ProcessNewView(next_view);
+        LOG(ERROR) << "CHATAY_HS1_TRACE warm_cluster_entry_loop_finish"
+                   << " self=" << id_
+                   << " view=" << next_view
+                   << " ret=" << ret
+                   << " queue_empty_after_process=" << request_list_.Empty();
+      }).detach();
+    }
     message_manager_->Commit(std::move(request));
   } else {
     // For prepare, send back the new node in qc. Then every message in the
@@ -455,6 +686,15 @@ int Commitment::ProcessMessageOnReplica(
     //           << HotStuffRequest_Type_Name(VoteType(request->type()))
     //           << " to:" << PrimaryId(request->sender_id() + 1) << " view"
     //           << request->node().info().view();
+    LOG(ERROR) << "CHATAY_HS1_TRACE replica_send_vote"
+               << " self=" << id_
+               << " vote_type="
+               << HotStuffRequest_Type_Name(VoteType(request->type()))
+               << " source_type="
+               << HotStuffRequest_Type_Name(request->type())
+               << " target_primary=" << PrimaryId(request->sender_id() + 1)
+               << " view=" << request->node().info().view()
+               << " data_size=" << vote_request->data().size();
     replica_communicator_->SendMessage(*vote_request,
                                        PrimaryId(request->sender_id() + 1));
   }

@@ -236,6 +236,13 @@ int ResponseManager::DoBatch(
   new_request->set_hash(SignatureVerifier::CalculateHash(new_request->data()));
   new_request->set_proxy_id(config_.GetSelfInfo().id());
 
+  LOG(ERROR) << "CHATAY_HS1_TRACE response_batch"
+             << " self=" << config_.GetSelfInfo().id()
+             << " primary=" << GetPrimary()
+             << " batch_size=" << batch_req.size()
+             << " local_id=" << batch_request.local_id()
+             << " data_size=" << new_request->data().size()
+             << " hash=" << new_request->hash();
   LOG(INFO) << "send msg to primary:" << GetPrimary()
             << " batch size:" << batch_req.size()
             << " request:" << new_request->DebugString();
