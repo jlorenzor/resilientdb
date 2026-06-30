@@ -19,6 +19,7 @@
 
 #include "platform/networkstrate/consensus_manager.h"
 
+#include <chrono>
 #include <glog/logging.h>
 #include <unistd.h>
 
@@ -27,6 +28,12 @@
 namespace resdb {
 
 namespace {
+
+int64_t ColdStartNowMs() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
+}
 
 bool ReplicaExisted(const ReplicaInfo& replica_info,
                     const std::vector<ReplicaInfo>& replicas) {
@@ -42,11 +49,26 @@ bool ReplicaExisted(const ReplicaInfo& replica_info,
 
 ConsensusManager::ConsensusManager(const ResDBConfig& config)
     : config_(config), global_stats_(Stats::GetGlobalStats()) {
+  const int64_t started_at = ColdStartNowMs();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START consensus_manager_ctor_start"
+             << " ts_ms=" << started_at
+             << " self=" << config_.GetSelfInfo().id()
+             << " heartbeat_enabled=" << config_.HeartBeatEnabled()
+             << " verifier_enabled=" << config_.SignatureVerifierEnabled()
+             << " replicas=" << config_.GetReplicaInfos().size();
   if (config_.SignatureVerifierEnabled()) {
     verifier_ = std::make_unique<SignatureVerifier>(
         config_.GetPrivateKey(), config_.GetPublicKeyCertificateInfo());
+    LOG(ERROR) << "CHATAY_HS1_COLD_START signature_verifier_created"
+               << " ts_ms=" << ColdStartNowMs()
+               << " self=" << config_.GetSelfInfo().id();
   }
   bc_client_ = GetReplicaClient(config_.GetReplicaInfos(), true);
+  LOG(ERROR) << "CHATAY_HS1_COLD_START consensus_manager_ctor_finish"
+             << " ts_ms=" << ColdStartNowMs()
+             << " duration_ms=" << (ColdStartNowMs() - started_at)
+             << " self=" << config_.GetSelfInfo().id()
+             << " has_verifier=" << (verifier_ != nullptr);
 }
 
 ConsensusManager::~ConsensusManager() {
@@ -76,15 +98,26 @@ void ConsensusManager::Stop() {
 }
 
 void ConsensusManager::Start() {
+  LOG(ERROR) << "CHATAY_HS1_COLD_START consensus_manager_start_enter"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << config_.GetSelfInfo().id()
+             << " heartbeat_enabled=" << config_.HeartBeatEnabled()
+             << " has_verifier=" << (verifier_ != nullptr);
   ServiceInterface::Start();
   if (config_.HeartBeatEnabled() && verifier_) {
     heartbeat_thread_ =
         std::thread(&ConsensusManager::HeartBeat, this);  // pass by reference
+    LOG(ERROR) << "CHATAY_HS1_COLD_START heartbeat_thread_started"
+               << " ts_ms=" << ColdStartNowMs()
+               << " self=" << config_.GetSelfInfo().id();
   }
 }
 
 // Keep Boardcast the public keys to others.
 void ConsensusManager::HeartBeat() {
+  LOG(ERROR) << "CHATAY_HS1_COLD_START heartbeat_loop_enter"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << config_.GetSelfInfo().id();
   LOG(INFO) << "heart beat start";
   int sleep_time = 1;
   std::mutex mutex;
@@ -111,6 +144,12 @@ void ConsensusManager::SendHeartBeat() {
   auto keys = verifier_->GetAllPublicKeys();
 
   std::vector<ReplicaInfo> replicas = GetAllReplicas();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START heartbeat_send_start"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << config_.GetSelfInfo().id()
+             << " known_public_keys=" << keys.size()
+             << " all_replicas=" << replicas.size()
+             << " current_ready=" << is_ready_;
   LOG(ERROR) << "all replicas:" << replicas.size();
   std::vector<ReplicaInfo> client_replicas = GetClientReplicas();
   HeartBeatInfo hb_info;
@@ -152,6 +191,11 @@ void ConsensusManager::SendHeartBeat() {
   hb_info.SerializeToString(request.mutable_data());
 
   int ret = client->SendHeartBeat(request);
+  LOG(ERROR) << "CHATAY_HS1_COLD_START heartbeat_send_finish"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << config_.GetSelfInfo().id()
+             << " ret=" << ret
+             << " current_ready=" << is_ready_;
   if (ret <= 0) {
     LOG(ERROR) << " server:" << config_.GetSelfInfo().id()
                << " sends HB fail:" << ret;
@@ -217,6 +261,9 @@ int ConsensusManager::Dispatch(std::unique_ptr<Context> context,
 
 int ConsensusManager::ProcessHeartBeat(std::unique_ptr<Context> context,
                                        std::unique_ptr<Request> request) {
+  LOG(ERROR) << "CHATAY_HS1_COLD_START heartbeat_receive_enter"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << config_.GetSelfInfo().id();
   std::unique_lock<std::mutex> lk(hb_mutex_);
   std::vector<ReplicaInfo> replicas = GetReplicas();
   HeartBeatInfo hb_info;
@@ -293,6 +340,12 @@ int ConsensusManager::ProcessHeartBeat(std::unique_ptr<Context> context,
   }
 
   if (!is_ready_ && replica_num >= config_.GetMinDataReceiveNum()) {
+    LOG(ERROR) << "CHATAY_HS1_COLD_START readiness_reached"
+               << " ts_ms=" << ColdStartNowMs()
+               << " self=" << config_.GetSelfInfo().id()
+               << " replica_num=" << replica_num
+               << " quorum=" << config_.GetMinDataReceiveNum()
+               << " sender=" << hb_info.sender();
     LOG(ERROR) << "============ Server " << config_.GetSelfInfo().id()
                << " is ready "
                   "=====================";

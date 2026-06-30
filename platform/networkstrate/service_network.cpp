@@ -22,6 +22,7 @@
 #include <glog/logging.h>
 #include <signal.h>
 
+#include <chrono>
 #include <thread>
 
 #include "platform/common/network/tcp_socket.h"
@@ -29,12 +30,27 @@
 
 namespace resdb {
 
+namespace {
+
+int64_t ColdStartNowMs() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
+}
+
+}  // namespace
+
 ServiceNetwork::ServiceNetwork(const ResDBConfig& config,
                                std::unique_ptr<ServiceInterface> service)
     : service_(std::move(service)),
       input_queue_("input"),
       resp_queue_("resp"),
       config_(config) {
+  const int64_t started_at = ColdStartNowMs();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START service_network_ctor_start"
+             << " ts_ms=" << started_at
+             << " self=" << config_.GetSelfInfo().id()
+             << " port=" << config_.GetSelfInfo().port();
   struct sigaction sa;
   sa.sa_handler = SIG_IGN;
   sa.sa_flags = 0;
@@ -44,6 +60,10 @@ ServiceNetwork::ServiceNetwork(const ResDBConfig& config,
   }
 
   acceptor_ = std::make_unique<Acceptor>(config, &input_queue_);
+  LOG(ERROR) << "CHATAY_HS1_COLD_START service_network_acceptor_created"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << config_.GetSelfInfo().id()
+             << " acceptor_port=" << config_.GetSelfInfo().port();
 
   async_acceptor_ = std::make_unique<AsyncAcceptor>(
       config.GetSelfInfo().ip(), config_.GetSelfInfo().port() + 10000,
@@ -51,7 +71,15 @@ ServiceNetwork::ServiceNetwork(const ResDBConfig& config,
       std::bind(&ServiceNetwork::AcceptorHandler, this, std::placeholders::_1,
                 std::placeholders::_2));
   async_acceptor_->StartAccept();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START service_network_async_acceptor_started"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << config_.GetSelfInfo().id()
+             << " async_port=" << config_.GetSelfInfo().port() + 10000;
   global_stats_ = Stats::GetGlobalStats();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START service_network_ctor_finish"
+             << " ts_ms=" << ColdStartNowMs()
+             << " duration_ms=" << (ColdStartNowMs() - started_at)
+             << " self=" << config_.GetSelfInfo().id();
 }
 
 ServiceNetwork::~ServiceNetwork() {}
@@ -82,6 +110,10 @@ void ServiceNetwork::InputProcess() {
   std::vector<std::thread> threads;
 
   int woker_num = config_.GetWorkerNum();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START input_process_start"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << config_.GetSelfInfo().id()
+             << " worker_num=" << woker_num;
   LOG(ERROR) << "server:" << config_.GetSelfInfo().id() << " start running";
   for (int i = 0; i < woker_num; ++i) {
     threads.push_back(std::thread([&]() {
@@ -104,9 +136,21 @@ void ServiceNetwork::InputProcess() {
 }
 
 void ServiceNetwork::Run() {
+  LOG(ERROR) << "CHATAY_HS1_COLD_START service_network_run_enter"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << config_.GetSelfInfo().id();
   service_->Start();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START service_network_service_started"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << config_.GetSelfInfo().id();
   auto input_th = std::thread(&ServiceNetwork::InputProcess, this);
+  LOG(ERROR) << "CHATAY_HS1_COLD_START service_network_input_thread_started"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << config_.GetSelfInfo().id();
 
+  LOG(ERROR) << "CHATAY_HS1_COLD_START service_network_acceptor_run_enter"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << config_.GetSelfInfo().id();
   acceptor_->Run();
 
   input_th.join();

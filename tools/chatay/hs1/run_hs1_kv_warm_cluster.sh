@@ -17,6 +17,7 @@ RUN_ID="${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)-hs1-kv}"
 ROOT="$(git rev-parse --show-toplevel)"
 TOTAL_PROCESS_COUNT=$((REPLICA_COUNT + CLIENT_PROCESS_COUNT))
 LOG_ROOT="${CHATAY_LOG_ROOT:-${ROOT}/documents/chatay-porting/${VERSION}/logs/${RUN_ID}}"
+LOG_PARENT="$(dirname "${LOG_ROOT}")"
 CONFIG_ROOT="${LOG_ROOT}/config"
 CERT_ROOT="${LOG_ROOT}/cert"
 SERVER_CONFIG="${CONFIG_ROOT}/server/server.config"
@@ -92,6 +93,12 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -p "${LOG_ROOT}" "${CONFIG_ROOT}/server" "${CONFIG_ROOT}/interface" "${CERT_ROOT}"
+if [[ ! -f "${LOG_PARENT}/.gitignore" ]]; then
+  {
+    printf '*\n'
+    printf '!.gitignore\n'
+  } > "${LOG_PARENT}/.gitignore"
+fi
 
 log "HS1/PR100 KV warm-cluster run ${RUN_ID}"
 log "repo=${ROOT}"

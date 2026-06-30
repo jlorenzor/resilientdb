@@ -27,6 +27,7 @@
 #include <unistd.h>
 
 #include <fstream>
+#include <chrono>
 #include <nlohmann/json.hpp>
 #include <regex>
 
@@ -37,7 +38,17 @@ using json = nlohmann::json;
 
 namespace {
 
+int64_t ColdStartNowMs() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
+}
+
 KeyInfo ReadKey(const std::string& file_name) {
+  const int64_t started_at = ColdStartNowMs();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START read_private_key_start"
+             << " ts_ms=" << started_at
+             << " file=" << file_name;
   int fd = open(file_name.c_str(), O_RDONLY, 0666);
   if (fd < 0) {
     LOG(ERROR) << "open file:" << file_name << " fail:" << strerror(errno);
@@ -57,10 +68,20 @@ KeyInfo ReadKey(const std::string& file_name) {
   close(fd);
   KeyInfo key;
   assert(key.ParseFromString(res));
+  LOG(ERROR) << "CHATAY_HS1_COLD_START read_private_key_finish"
+             << " ts_ms=" << ColdStartNowMs()
+             << " duration_ms=" << (ColdStartNowMs() - started_at)
+             << " file=" << file_name
+             << " bytes=" << res.size()
+             << " hash_type=" << key.hash_type();
   return key;
 }
 
 CertificateInfo ReadCert(const std::string& file_name) {
+  const int64_t started_at = ColdStartNowMs();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START read_cert_start"
+             << " ts_ms=" << started_at
+             << " file=" << file_name;
   int fd = open(file_name.c_str(), O_RDONLY, 0666);
   if (fd < 0) {
     LOG(ERROR) << "open file:" << file_name << " fail" << strerror(errno);
@@ -80,6 +101,13 @@ CertificateInfo ReadCert(const std::string& file_name) {
   close(fd);
   CertificateInfo info;
   assert(info.ParseFromString(res));
+  LOG(ERROR) << "CHATAY_HS1_COLD_START read_cert_finish"
+             << " ts_ms=" << ColdStartNowMs()
+             << " duration_ms=" << (ColdStartNowMs() - started_at)
+             << " file=" << file_name
+             << " bytes=" << res.size()
+             << " node_id=" << info.public_key().public_key_info().node_id()
+             << " type=" << info.public_key().public_key_info().type();
   return info;
 }
 
@@ -101,6 +129,10 @@ std::string RemoveJsonComments(const std::string& jsonWithComments) {
 }
 
 ResConfigData ReadConfigFromFile(const std::string& file_name) {
+  const int64_t started_at = ColdStartNowMs();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START read_config_start"
+             << " ts_ms=" << started_at
+             << " file=" << file_name;
   std::stringstream json_data;
   std::ifstream infile(file_name.c_str());
   if (!infile.is_open()) {
@@ -119,6 +151,12 @@ ResConfigData ReadConfigFromFile(const std::string& file_name) {
     LOG(ERROR) << "parse json :" << file_name << " fail:" << status.message();
   }
   assert(status.ok());
+  LOG(ERROR) << "CHATAY_HS1_COLD_START read_config_finish"
+             << " ts_ms=" << ColdStartNowMs()
+             << " duration_ms=" << (ColdStartNowMs() - started_at)
+             << " file=" << file_name
+             << " bytes=" << cleanJson.size()
+             << " regions=" << config_data.region_size();
   return config_data;
 }
 
@@ -156,12 +194,22 @@ std::unique_ptr<ResDBConfig> GenerateResDBConfig(
     const std::string& config_file, const std::string& private_key_file,
     const std::string& cert_file, std::optional<ReplicaInfo> self_info,
     std::optional<ConfigGenFunc> gen_func) {
+  const int64_t started_at = ColdStartNowMs();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START generate_resdb_config_start"
+             << " ts_ms=" << started_at
+             << " config_file=" << config_file
+             << " private_key_file=" << private_key_file
+             << " cert_file=" << cert_file;
   ResConfigData config_data = ReadConfigFromFile(config_file);
   KeyInfo private_key = ReadKey(private_key_file);
   CertificateInfo cert_info = ReadCert(cert_file);
 
-  LOG(ERROR) << "private key:" << private_key.DebugString()
-             << " cert:" << cert_info.DebugString();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START key_cert_loaded"
+             << " ts_ms=" << ColdStartNowMs()
+             << " node_id=" << cert_info.public_key().public_key_info().node_id()
+             << " public_key_hash_type="
+             << cert_info.public_key().public_key_info().key().hash_type()
+             << " private_key_hash_type=" << private_key.hash_type();
   if (!self_info.has_value()) {
     self_info = ReplicaInfo();
   }
@@ -173,8 +221,18 @@ std::unique_ptr<ResDBConfig> GenerateResDBConfig(
   *(*self_info).mutable_certificate_info() = cert_info;
 
   if (gen_func.has_value()) {
+    LOG(ERROR) << "CHATAY_HS1_COLD_START generate_resdb_config_finish"
+               << " ts_ms=" << ColdStartNowMs()
+               << " duration_ms=" << (ColdStartNowMs() - started_at)
+               << " self=" << self_info->id()
+               << " custom_gen=1";
     return (*gen_func)(config_data, self_info.value(), private_key, cert_info);
   }
+  LOG(ERROR) << "CHATAY_HS1_COLD_START generate_resdb_config_finish"
+             << " ts_ms=" << ColdStartNowMs()
+             << " duration_ms=" << (ColdStartNowMs() - started_at)
+             << " self=" << self_info->id()
+             << " custom_gen=0";
   return std::make_unique<ResDBConfig>(config_data, self_info.value(),
                                        private_key, cert_info);
 }

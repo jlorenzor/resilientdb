@@ -28,12 +28,23 @@
 #include <glog/logging.h>
 #include <unistd.h>
 
+#include <chrono>
 #include <thread>
 
 #include "common/utils/utils.h"
 
 namespace resdb {
 namespace hotstuff {
+
+namespace {
+
+int64_t ColdStartNowMs() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
+}
+
+}  // namespace
 
 Commitment::Commitment(const ResDBConfig& config,
                        MessageManager* message_manager,
@@ -47,6 +58,10 @@ Commitment::Commitment(const ResDBConfig& config,
 Commitment::~Commitment() {}
 
 void Commitment::Init() {
+  const int64_t started_at = ColdStartNowMs();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START commitment_init_enter"
+             << " ts_ms=" << started_at
+             << " self=" << id_;
   current_view_ = 0;
   LOG(ERROR) << "CHATAY_HS1_TRACE commitment_init"
              << " self=" << id_
@@ -58,10 +73,26 @@ void Commitment::Init() {
   // are usable in a cold local bootstrap. This delay only widens bootstrap
   // readiness; it does not change quorum, locking, QC, or vote validation.
   const int bootstrap_wait_seconds = 2 + id_;
+  LOG(ERROR) << "CHATAY_HS1_COLD_START newview_bootstrap_wait_start"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << id_
+             << " seconds=" << bootstrap_wait_seconds;
   LOG(ERROR) << "CHATAY_HS1_TRACE newview_bootstrap_wait self=" << id_
              << " seconds=" << bootstrap_wait_seconds;
   sleep(bootstrap_wait_seconds);
+  LOG(ERROR) << "CHATAY_HS1_COLD_START newview_bootstrap_wait_finish"
+             << " ts_ms=" << ColdStartNowMs()
+             << " duration_ms=" << (ColdStartNowMs() - started_at)
+             << " self=" << id_;
+  LOG(ERROR) << "CHATAY_HS1_COLD_START send_newview_initial_start"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << id_;
   SendNewView();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START commitment_init_exit"
+             << " ts_ms=" << ColdStartNowMs()
+             << " duration_ms=" << (ColdStartNowMs() - started_at)
+             << " self=" << id_
+             << " current_view=" << current_view_;
 }
 
 QC Commitment::GetQC(int64_t view_num, HotStuffRequest::Type type) {
@@ -253,6 +284,11 @@ std::unique_ptr<HotStuffRequest> Commitment::GetClientRequest() {
 
 // ========= Start function ===============
 void Commitment::SendNewView() {
+  const int64_t started_at = ColdStartNowMs();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START send_newview_enter"
+             << " ts_ms=" << started_at
+             << " self=" << id_
+             << " current_view_before=" << current_view_;
   QC prepare_qc = message_manager_->GetPrepareQC();
   auto user_request = std::make_unique<HotStuffRequest>();
   *user_request->mutable_qc() = prepare_qc;
@@ -277,8 +313,19 @@ void Commitment::SendNewView() {
                << " self=" << id_
                << " attempt=" << attempt
                << " target_primary=" << PrimaryId(current_view_);
+    LOG(ERROR) << "CHATAY_HS1_COLD_START send_newview_attempt"
+               << " ts_ms=" << ColdStartNowMs()
+               << " self=" << id_
+               << " attempt=" << attempt
+               << " target_primary=" << PrimaryId(current_view_)
+               << " current_view=" << current_view_;
     replica_communicator_->SendMessage(*vote_request, PrimaryId(current_view_));
   }
+  LOG(ERROR) << "CHATAY_HS1_COLD_START send_newview_exit"
+             << " ts_ms=" << ColdStartNowMs()
+             << " duration_ms=" << (ColdStartNowMs() - started_at)
+             << " self=" << id_
+             << " current_view_after=" << current_view_;
 }
 
 // 1. Obtain the highQC from 2f+1 new view messages.

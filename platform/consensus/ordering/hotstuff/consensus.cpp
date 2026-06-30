@@ -25,6 +25,7 @@
 
 #include "platform/consensus/ordering/hotstuff/consensus.h"
 
+#include <chrono>
 #include <glog/logging.h>
 #include <unistd.h>
 
@@ -32,6 +33,16 @@
 
 namespace resdb {
 namespace hotstuff {
+
+namespace {
+
+int64_t ColdStartNowMs() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
+}
+
+}  // namespace
 
 Consensus::Consensus(const ResDBConfig& config,
                      std::unique_ptr<TransactionManager> executor)
@@ -52,13 +63,32 @@ Consensus::Consensus(const ResDBConfig& config,
                                      config_, GetBroadCastClient(),
                                      &system_info_, GetSignatureVerifier())
                                : nullptr) {
+  LOG(ERROR) << "CHATAY_HS1_COLD_START hotstuff_consensus_ctor"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << config_.GetSelfInfo().id()
+             << " performance_running=" << config_.IsPerformanceRunning();
   LOG(ERROR) << "=========== service ===================="
              << config_.IsPerformanceRunning();
 }
 
 void Consensus::Start() {
+  const int64_t started_at = ColdStartNowMs();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START hotstuff_start_enter"
+             << " ts_ms=" << started_at
+             << " self=" << config_.GetSelfInfo().id();
   ConsensusManager::Start();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START consensus_manager_start_finish"
+             << " ts_ms=" << ColdStartNowMs()
+             << " elapsed_ms=" << (ColdStartNowMs() - started_at)
+             << " self=" << config_.GetSelfInfo().id();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START commitment_init_start"
+             << " ts_ms=" << ColdStartNowMs()
+             << " self=" << config_.GetSelfInfo().id();
   commitment_->Init();
+  LOG(ERROR) << "CHATAY_HS1_COLD_START commitment_init_finish"
+             << " ts_ms=" << ColdStartNowMs()
+             << " elapsed_ms=" << (ColdStartNowMs() - started_at)
+             << " self=" << config_.GetSelfInfo().id();
 }
 
 std::vector<ReplicaInfo> Consensus::GetReplicas() {
