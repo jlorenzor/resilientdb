@@ -19,11 +19,11 @@ Instrument HS1/PR100 cold-start in the real ResilientDB fork.
 
 ## Runtime Tasks
 
-- [ ] Build required Bazel targets inside Docker.
-- [ ] Run HS1 KV smoke path with `HS1_OPERATION_COUNT=1`.
-- [ ] Confirm `RUNTIME_SMOKE_PASSED`.
-- [ ] Confirm cold-start traces appear in node logs.
-- [ ] Store evidence summary without committing raw keys/certificates.
+- [x] Build required Bazel targets inside Docker.
+- [x] Run HS1 KV smoke path with `HS1_OPERATION_COUNT=1`.
+- [x] Confirm `RUNTIME_SMOKE_PASSED`.
+- [x] Confirm cold-start traces appear in node logs.
+- [x] Store evidence summary without committing raw keys/certificates.
 
 ## Exit Criteria
 
@@ -34,6 +34,17 @@ status=RUNTIME_SMOKE_PASSED
 operationCount=1
 passedOperations=1
 CHATAY_HS1_COLD_START traces present
+```
+
+Validated run:
+
+```txt
+runId=20260630T043005Z-hs1-kv
+status=RUNTIME_SMOKE_PASSED
+branch=consensus/hs1-cold-start-v2.14.7-alpha.1
+commit=0ff1429367593570f7d5a893575e8aa7738a376c
+operationCount=1
+passedOperations=1
 ```
 
 ## Claim Boundary
