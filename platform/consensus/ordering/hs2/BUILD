@@ -38,9 +38,24 @@ cc_library(
     hdrs = ["hs2_new_txn_pipeline.h"],
     deps = [
         ":hs2_core",
+        ":hs2_payload_binding",
         ":hs2_qc_boundary",
         "//common/crypto:signature_verifier",
         "//platform/config:resdb_config",
+        "//platform/proto:resdb_cc_proto",
+    ],
+    visibility = [
+        "//visibility:public",
+    ],
+)
+
+cc_library(
+    name = "hs2_payload_binding",
+    srcs = ["hs2_payload_binding.cpp"],
+    hdrs = ["hs2_payload_binding.h"],
+    deps = [
+        ":hs2_core",
+        "//common/crypto:signature_verifier",
         "//platform/proto:resdb_cc_proto",
     ],
     visibility = [

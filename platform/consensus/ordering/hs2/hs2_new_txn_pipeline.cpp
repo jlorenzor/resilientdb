@@ -181,7 +181,9 @@ void Hs2NewTxnPipeline::AttachCommitProof(
   SignatureInfo* proof = request->mutable_committed_certs()->add_committed_certs();
   proof->set_hash_type(SignatureInfo::NONE);
   proof->set_node_id(certification.block.proposer_id);
-  proof->set_signature(SerializeCommitProof(certification));
+  proof->set_signature(commit_proof_builder_.Serialize(
+      *request, certification.block, certification.phase1_qc,
+      certification.phase2_qc));
 }
 
 std::string Hs2NewTxnPipeline::PayloadDigest(const Request& request) const {
@@ -207,28 +209,6 @@ std::string Hs2NewTxnPipeline::ParentHash(const Request& request) const {
     return "hs2-genesis";
   }
   return last_committed_block_hash_;
-}
-
-std::string Hs2NewTxnPipeline::SerializeCommitProof(
-    const Hs2NewTxnCertification& certification) const {
-  std::ostringstream proof;
-  proof << "hs2-alpha-commit"
-        << "|height=" << certification.block.height
-        << "|view=" << certification.block.view
-        << "|block=" << certification.block.block_hash
-        << "|phase1_voters=";
-  for (size_t i = 0; i < certification.phase1_qc.voters.size(); ++i) {
-    if (i > 0) proof << ",";
-    proof << certification.phase1_qc.voters[i];
-  }
-  proof << "|phase2_voters=";
-  for (size_t i = 0; i < certification.phase2_qc.voters.size(); ++i) {
-    if (i > 0) proof << ",";
-    proof << certification.phase2_qc.voters[i];
-  }
-  proof << "|phase1_proof=" << certification.phase1_qc.proof_digest
-        << "|phase2_proof=" << certification.phase2_qc.proof_digest;
-  return proof.str();
 }
 
 }  // namespace hs2

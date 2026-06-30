@@ -4,6 +4,7 @@
 
 #include "common/crypto/signature_verifier.h"
 #include "platform/config/resdb_config.h"
+#include "platform/consensus/ordering/hs2/hs2_payload_binding.h"
 #include "platform/consensus/ordering/hs2/hs2_new_txn_pipeline.h"
 #include "platform/proto/resdb.pb.h"
 
@@ -69,6 +70,17 @@ int main() {
   const auto& proof = request.committed_certs().committed_certs(0);
   if (proof.signature().find("hs2-alpha-commit") == std::string::npos) {
     return Fail("unexpected commit proof marker");
+  }
+  resdb::hs2::Hs2CommitProofBuilder proof_builder;
+  std::string reason;
+  if (!proof_builder.VerifyForRequest(request, proof.signature(), &reason)) {
+    return Fail("commit proof did not bind to request");
+  }
+  auto tampered_request = request;
+  tampered_request.set_data("tampered");
+  if (proof_builder.VerifyForRequest(tampered_request, proof.signature(),
+                                     &reason)) {
+    return Fail("commit proof accepted a tampered request");
   }
 
   auto duplicate_request = MakeNewTxnRequest(/*seq=*/7);

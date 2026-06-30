@@ -29,7 +29,18 @@ cc_binary(
     deps = [
         "//common/crypto:signature_verifier",
         "//platform/config:resdb_config",
+        "//platform/consensus/ordering/hs2:hs2_payload_binding",
         "//platform/consensus/ordering/hs2:hs2_new_txn_pipeline",
+        "//platform/proto:resdb_cc_proto",
+    ],
+)
+
+cc_binary(
+    name = "hs2_payload_binding_probe",
+    srcs = ["hs2_payload_binding_probe.cpp"],
+    deps = [
+        "//common/crypto:signature_verifier",
+        "//platform/consensus/ordering/hs2:hs2_payload_binding",
         "//platform/proto:resdb_cc_proto",
     ],
 )
