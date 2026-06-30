@@ -1,0 +1,528 @@
+docker : Starting local Bazel server and connecting to it...
+En línea: 2 Carácter: 58
++ ... | Out-Null; docker run --name hs1-build-v2145-kv-perf -v "C:\Users\cs ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Starting local ...ecting to it...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+DEBUG: Rule 'hedron_compile_commands' indicated that a canonical reproducible form can be obtained by modifying
+arguments sha256 = "658122cfb1f25be76ea212b00f5eb047d8e2adc8bcf923b918461f2b1e37cdf2"
+DEBUG: Repository hedron_compile_commands instantiated at:
+  /workspace/WORKSPACE:23:13: in <toplevel>
+Repository rule http_archive defined at:
+  /root/.cache/bazel/_bazel_root/eab0d61a99b6696edb3d2aff87b585e8/external/bazel_tools/tools/build_defs/repo/http.bzl:3
+72:31: in <toplevel>
+DEBUG: Rule 'com_github_nelhage_rules_boost' indicated that a canonical reproducible form can be obtained by modifying
+arguments sha256 = "5ea00abc70cdf396a23fb53201db19ebce2837d28887a08544429d27783309ed"
+DEBUG: Repository com_github_nelhage_rules_boost instantiated at:
+  /workspace/WORKSPACE:48:20: in <toplevel>
+  /workspace/repositories.bzl:42:10: in nexres_repositories
+  /root/.cache/bazel/_bazel_root/eab0d61a99b6696edb3d2aff87b585e8/external/bazel_tools/tools/build_defs/repo/utils.bzl:
+233:18: in maybe
+Repository rule http_archive defined at:
+  /root/.cache/bazel/_bazel_root/eab0d61a99b6696edb3d2aff87b585e8/external/bazel_tools/tools/build_defs/repo/http.bzl:3
+72:31: in <toplevel>
+DEBUG: Rule 'pybind11_bazel' indicated that a canonical reproducible form can be obtained by modifying arguments
+sha256 = "044d334a269e03edf4c7f8a3315d1dbf59177b8ddf1c38178bcc72cc73a93aba"
+DEBUG: Repository pybind11_bazel instantiated at:
+  /workspace/WORKSPACE:234:13: in <toplevel>
+Repository rule http_archive defined at:
+  /root/.cache/bazel/_bazel_root/eab0d61a99b6696edb3d2aff87b585e8/external/bazel_tools/tools/build_defs/repo/http.bzl:3
+72:31: in <toplevel>
+Loading:
+Loading: 0 packages loaded
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (1 packages loaded, 0 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (37 packages loaded, 6 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (37 packages loaded, 6 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (37 packages loaded, 6 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (37 packages loaded, 6 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (59 packages loaded, 246 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (96 packages loaded, 2250 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (96 packages loaded, 2283 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (96 packages loaded, 2283 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (97 packages loaded, 2283 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (97 packages loaded, 2283 targets configured)
+DEBUG: Rule 'com_google_absl' indicated that a canonical reproducible form can be obtained by modifying arguments
+sha256 = "a4567ff02faca671b95e31d315bab18b42b6c6f1a60e91c6ea84e5a2142112c2"
+DEBUG: Repository com_google_absl instantiated at:
+  /workspace/WORKSPACE:48:20: in <toplevel>
+  /workspace/repositories.bzl:56:10: in nexres_repositories
+  /root/.cache/bazel/_bazel_root/eab0d61a99b6696edb3d2aff87b585e8/external/bazel_tools/tools/build_defs/repo/utils.bzl:
+233:18: in maybe
+Repository rule http_archive defined at:
+  /root/.cache/bazel/_bazel_root/eab0d61a99b6696edb3d2aff87b585e8/external/bazel_tools/tools/build_defs/repo/http.bzl:3
+72:31: in <toplevel>
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (117 packages loaded, 3510 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (117 packages loaded, 3510 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (117 packages loaded, 3510 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_server_performance (117 packages loaded, 3510 targets configured)
+INFO: Analyzed target //benchmark/protocols/hotstuff:kv_server_performance (119 packages loaded, 9840 targets
+configured).
+ checking cached actions
+INFO: Found 1 target...
+[0 / 5] [Prepa] BazelWorkspaceStatusAction stable-status.txt ... ( 1 action running)
+[62 / 68] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 0s processwrapper-sandbox ... (2
+actions, 1 running)
+[72 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 1s processwrapper-sandbox ... (4
+actions, 3 running)
+INFO: From Compiling src/CivetServer.cpp:
+external/civetweb/src/CivetServer.cpp: In constructor 'CivetServer::CivetServer(const char**, const CivetCallbacks*,
+const void*)':
+external/civetweb/src/CivetServer.cpp:399:41: warning: 'void* memset(void*, int, size_t)' clearing an object of
+non-trivial type 'struct CivetCallbacks'; use assignment or value-initialization instead [-Wclass-memaccess]
+  399 |  memset(&callbacks, 0, sizeof(callbacks));
+      |                                         ^
+In file included from external/civetweb/src/CivetServer.cpp:7:
+external/civetweb/include/CivetServer.h:300:25: note: 'struct CivetCallbacks' declared here
+  300 | struct CIVETWEB_CXX_API CivetCallbacks : public mg_callbacks {
+      |                         ^~~~~~~~~~~~~~
+external/civetweb/src/CivetServer.cpp: In constructor 'CivetServer::CivetServer(const
+std::vector<std::__cxx11::basic_string<char> >&, const CivetCallbacks*, const void*)':
+external/civetweb/src/CivetServer.cpp:423:41: warning: 'void* memset(void*, int, size_t)' clearing an object of
+non-trivial type 'struct CivetCallbacks'; use assignment or value-initialization instead [-Wclass-memaccess]
+  423 |  memset(&callbacks, 0, sizeof(callbacks));
+      |                                         ^
+In file included from external/civetweb/src/CivetServer.cpp:7:
+external/civetweb/include/CivetServer.h:300:25: note: 'struct CivetCallbacks' declared here
+  300 | struct CIVETWEB_CXX_API CivetCallbacks : public mg_callbacks {
+      |                         ^~~~~~~~~~~~~~
+[82 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 2s processwrapper-sandbox ... (4
+actions, 3 running)
+[87 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 3s processwrapper-sandbox ... (4
+actions, 3 running)
+[91 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 4s processwrapper-sandbox ... (4
+actions, 3 running)
+[95 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 5s processwrapper-sandbox ... (4
+actions running)
+[102 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 6s processwrapper-sandbox ... (4
+actions running)
+[114 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 7s processwrapper-sandbox ... (4
+actions running)
+[117 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 8s processwrapper-sandbox ... (4
+actions running)
+[119 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 9s processwrapper-sandbox ... (4
+actions running)
+[122 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 10s processwrapper-sandbox ... (4
+actions running)
+[126 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 11s processwrapper-sandbox ... (4
+actions, 3 running)
+[126 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 12s processwrapper-sandbox ... (4
+actions running)
+[129 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 14s processwrapper-sandbox ... (4
+actions, 3 running)
+[133 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 15s processwrapper-sandbox ... (4
+actions running)
+[136 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 16s processwrapper-sandbox ... (4
+actions running)
+[137 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 17s processwrapper-sandbox ... (4
+actions running)
+[138 / 392] BootstrapGNUMake external/rules_foreign_cc/toolchains/make [for tool]; 19s processwrapper-sandbox ... (4
+actions, 3 running)
+[141 / 392] Compiling src/simple/simpleaccount.cpp; 3s processwrapper-sandbox ... (4 actions, 3 running)
+[145 / 392] Foreign Cc - Make: Building cryptopp; 1s processwrapper-sandbox ... (4 actions, 3 running)
+[148 / 392] Foreign Cc - Make: Building cryptopp; 2s processwrapper-sandbox ... (4 actions, 3 running)
+[149 / 392] Foreign Cc - Make: Building cryptopp; 3s processwrapper-sandbox ... (3 actions, 2 running)
+[153 / 392] Foreign Cc - Make: Building cryptopp; 4s processwrapper-sandbox ... (4 actions, 3 running)
+[156 / 392] Foreign Cc - Make: Building cryptopp; 5s processwrapper-sandbox ... (4 actions running)
+[157 / 392] Foreign Cc - Make: Building cryptopp; 6s processwrapper-sandbox ... (4 actions running)
+[158 / 392] Foreign Cc - Make: Building cryptopp; 7s processwrapper-sandbox ... (4 actions running)
+[160 / 392] Foreign Cc - Make: Building cryptopp; 8s processwrapper-sandbox ... (4 actions, 3 running)
+[162 / 392] Foreign Cc - Make: Building cryptopp; 10s processwrapper-sandbox ... (4 actions running)
+[165 / 392] Foreign Cc - Make: Building cryptopp; 11s processwrapper-sandbox ... (3 actions, 2 running)
+[165 / 392] Foreign Cc - Make: Building cryptopp; 13s processwrapper-sandbox ... (4 actions, 2 running)
+[167 / 392] Foreign Cc - Make: Building cryptopp; 14s processwrapper-sandbox ... (4 actions, 3 running)
+[170 / 392] Foreign Cc - Make: Building cryptopp; 15s processwrapper-sandbox ... (4 actions, 3 running)
+[174 / 392] Foreign Cc - Make: Building cryptopp; 16s processwrapper-sandbox ... (4 actions running)
+[176 / 392] Foreign Cc - Make: Building cryptopp; 17s processwrapper-sandbox ... (4 actions running)
+[178 / 392] Foreign Cc - Make: Building cryptopp; 18s processwrapper-sandbox ... (4 actions running)
+[181 / 392] Foreign Cc - Make: Building cryptopp; 20s processwrapper-sandbox ... (4 actions, 3 running)
+[183 / 392] Foreign Cc - Make: Building cryptopp; 21s processwrapper-sandbox ... (4 actions running)
+[185 / 392] Foreign Cc - Make: Building cryptopp; 24s processwrapper-sandbox ... (3 actions, 2 running)
+[187 / 392] Foreign Cc - Make: Building cryptopp; 25s processwrapper-sandbox ... (4 actions, 3 running)
+[191 / 392] Foreign Cc - Make: Building cryptopp; 26s processwrapper-sandbox ... (4 actions running)
+[192 / 392] Foreign Cc - Make: Building cryptopp; 27s processwrapper-sandbox ... (4 actions running)
+[193 / 392] Foreign Cc - Make: Building cryptopp; 28s processwrapper-sandbox ... (4 actions running)
+INFO: From Compiling platform/consensus/execution/transaction_executor.cpp:
+In file included from external/boost/boost/assert.hpp:58,
+                 from external/boost/boost/beast/websocket/impl/write.hpp:29,
+                 from external/boost/boost/beast/websocket/stream.hpp:2650,
+                 from external/boost/boost/beast/websocket.hpp:18,
+                 from external/boost/boost/beast.hpp:18,
+                 from ./platform/statistic/stats.h:29,
+                 from ./platform/consensus/execution/transaction_executor.h:30,
+                 from platform/consensus/execution/transaction_executor.cpp:20:
+platform/consensus/execution/transaction_executor.cpp: In member function 'void
+resdb::TransactionExecutor::Execute(std::unique_ptr<resdb::Request>, bool)':
+platform/consensus/execution/transaction_executor.cpp:327:30: warning: comparison of integer expressions of different
+signedness: 'int32_t' {aka 'int'} and 'google::protobuf::uint64' {aka 'long unsigned int'} [-Wsign-compare]
+  327 |         assert(last_seq_ + 1 == request->seq());
+      |                ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+[194 / 392] Foreign Cc - Make: Building cryptopp; 30s processwrapper-sandbox ... (4 actions, 3 running)
+[195 / 392] Foreign Cc - Make: Building cryptopp; 31s processwrapper-sandbox ... (4 actions running)
+[196 / 392] Foreign Cc - Make: Building cryptopp; 34s processwrapper-sandbox ... (4 actions, 3 running)
+[200 / 392] Foreign Cc - Make: Building cryptopp; 36s processwrapper-sandbox ... (4 actions running)
+[202 / 392] Foreign Cc - Make: Building cryptopp; 38s processwrapper-sandbox ... (4 actions running)
+[203 / 392] Foreign Cc - Make: Building cryptopp; 39s processwrapper-sandbox ... (4 actions, 3 running)
+[209 / 392] Foreign Cc - Make: Building cryptopp; 40s processwrapper-sandbox ... (4 actions, 3 running)
+[216 / 392] Foreign Cc - Make: Building cryptopp; 41s processwrapper-sandbox ... (4 actions, 3 running)
+[219 / 392] Foreign Cc - Make: Building cryptopp; 43s processwrapper-sandbox ... (4 actions, 3 running)
+[221 / 392] Foreign Cc - Make: Building cryptopp; 44s processwrapper-sandbox ... (4 actions, 3 running)
+[221 / 392] Foreign Cc - Make: Building cryptopp; 45s processwrapper-sandbox ... (4 actions running)
+[222 / 392] Foreign Cc - Make: Building cryptopp; 49s processwrapper-sandbox ... (4 actions, 3 running)
+[223 / 392] Foreign Cc - Make: Building cryptopp; 50s processwrapper-sandbox ... (4 actions running)
+[225 / 392] Foreign Cc - Make: Building cryptopp; 51s processwrapper-sandbox ... (4 actions running)
+[227 / 392] Foreign Cc - Make: Building cryptopp; 52s processwrapper-sandbox ... (4 actions running)
+[228 / 392] Foreign Cc - Make: Building cryptopp; 56s processwrapper-sandbox ... (4 actions, 3 running)
+[229 / 392] Foreign Cc - Make: Building cryptopp; 57s processwrapper-sandbox ... (4 actions running)
+[231 / 392] Foreign Cc - Make: Building cryptopp; 59s processwrapper-sandbox ... (3 actions, 2 running)
+[232 / 392] Foreign Cc - Make: Building cryptopp; 60s processwrapper-sandbox ... (4 actions, 3 running)
+[235 / 392] Foreign Cc - Make: Building cryptopp; 62s processwrapper-sandbox ... (4 actions running)
+[236 / 392] Foreign Cc - Make: Building cryptopp; 63s processwrapper-sandbox ... (4 actions, 3 running)
+[237 / 392] Foreign Cc - Make: Building cryptopp; 65s processwrapper-sandbox ... (4 actions running)
+[238 / 392] Foreign Cc - Make: Building cryptopp; 66s processwrapper-sandbox ... (4 actions running)
+[241 / 392] Foreign Cc - Make: Building cryptopp; 67s processwrapper-sandbox ... (4 actions, 3 running)
+[244 / 392] Foreign Cc - Make: Building cryptopp; 69s processwrapper-sandbox ... (4 actions running)
+[245 / 392] Foreign Cc - Make: Building cryptopp; 70s processwrapper-sandbox ... (4 actions, 3 running)
+[247 / 392] Foreign Cc - Make: Building cryptopp; 71s processwrapper-sandbox ... (4 actions, 3 running)
+[247 / 392] Foreign Cc - Make: Building cryptopp; 73s processwrapper-sandbox ... (4 actions running)
+[249 / 392] Foreign Cc - Make: Building cryptopp; 74s processwrapper-sandbox ... (4 actions, 3 running)
+[252 / 392] Foreign Cc - Make: Building cryptopp; 75s processwrapper-sandbox ... (4 actions, 3 running)
+[253 / 392] Foreign Cc - Make: Building cryptopp; 76s processwrapper-sandbox ... (4 actions, 3 running)
+[253 / 392] Foreign Cc - Make: Building cryptopp; 78s processwrapper-sandbox ... (4 actions running)
+[255 / 392] Foreign Cc - Make: Building cryptopp; 79s processwrapper-sandbox ... (4 actions running)
+[257 / 392] Foreign Cc - Make: Building cryptopp; 80s processwrapper-sandbox ... (4 actions running)
+[259 / 392] Foreign Cc - Make: Building cryptopp; 81s processwrapper-sandbox ... (4 actions running)
+[260 / 392] Foreign Cc - Make: Building cryptopp; 83s processwrapper-sandbox ... (4 actions running)
+[261 / 392] Foreign Cc - Make: Building cryptopp; 84s processwrapper-sandbox ... (4 actions, 3 running)
+[264 / 392] Foreign Cc - Make: Building cryptopp; 85s processwrapper-sandbox ... (4 actions, 3 running)
+[266 / 392] Foreign Cc - Make: Building cryptopp; 86s processwrapper-sandbox ... (4 actions, 3 running)
+[267 / 392] Foreign Cc - Make: Building cryptopp; 87s processwrapper-sandbox ... (4 actions running)
+[270 / 392] Foreign Cc - Make: Building cryptopp; 88s processwrapper-sandbox ... (4 actions running)
+[273 / 392] Foreign Cc - Make: Building cryptopp; 89s processwrapper-sandbox ... (4 actions, 3 running)
+[277 / 392] Foreign Cc - Make: Building cryptopp; 91s processwrapper-sandbox ... (4 actions running)
+[278 / 392] Foreign Cc - Make: Building cryptopp; 93s processwrapper-sandbox ... (4 actions running)
+[281 / 392] Foreign Cc - Make: Building cryptopp; 94s processwrapper-sandbox ... (4 actions running)
+[288 / 392] Foreign Cc - Make: Building cryptopp; 95s processwrapper-sandbox ... (4 actions running)
+[291 / 392] Foreign Cc - Make: Building cryptopp; 96s processwrapper-sandbox ... (4 actions, 3 running)
+[292 / 392] Foreign Cc - Make: Building cryptopp; 98s processwrapper-sandbox ... (4 actions running)
+[293 / 392] Foreign Cc - Make: Building cryptopp; 100s processwrapper-sandbox ... (4 actions, 3 running)
+[293 / 392] Foreign Cc - Make: Building cryptopp; 101s processwrapper-sandbox ... (4 actions running)
+[294 / 392] Foreign Cc - Make: Building cryptopp; 103s processwrapper-sandbox ... (4 actions, 3 running)
+[297 / 392] Foreign Cc - Make: Building cryptopp; 104s processwrapper-sandbox ... (4 actions, 3 running)
+[300 / 392] Foreign Cc - Make: Building cryptopp; 105s processwrapper-sandbox ... (4 actions running)
+[303 / 392] Foreign Cc - Make: Building cryptopp; 106s processwrapper-sandbox ... (4 actions, 3 running)
+[305 / 392] Foreign Cc - Make: Building cryptopp; 108s processwrapper-sandbox ... (4 actions running)
+[307 / 392] Foreign Cc - Make: Building cryptopp; 109s processwrapper-sandbox ... (4 actions running)
+[308 / 392] Foreign Cc - Make: Building cryptopp; 110s processwrapper-sandbox ... (4 actions running)
+[311 / 392] Foreign Cc - Make: Building cryptopp; 111s processwrapper-sandbox ... (4 actions running)
+[315 / 392] Foreign Cc - Make: Building cryptopp; 113s processwrapper-sandbox ... (4 actions, 3 running)
+[317 / 392] Foreign Cc - Make: Building cryptopp; 114s processwrapper-sandbox ... (4 actions running)
+[319 / 392] Foreign Cc - Make: Building cryptopp; 116s processwrapper-sandbox ... (4 actions, 3 running)
+[324 / 392] Foreign Cc - Make: Building cryptopp; 117s processwrapper-sandbox ... (4 actions running)
+[328 / 392] Foreign Cc - Make: Building cryptopp; 118s processwrapper-sandbox ... (4 actions running)
+[332 / 392] Foreign Cc - Make: Building cryptopp; 119s processwrapper-sandbox ... (4 actions running)
+[334 / 392] Foreign Cc - Make: Building cryptopp; 121s processwrapper-sandbox ... (4 actions, 3 running)
+[335 / 392] Foreign Cc - Make: Building cryptopp; 122s processwrapper-sandbox ... (4 actions running)
+[336 / 392] Foreign Cc - Make: Building cryptopp; 123s processwrapper-sandbox ... (4 actions running)
+[338 / 392] Foreign Cc - Make: Building cryptopp; 124s processwrapper-sandbox ... (4 actions running)
+[341 / 392] Foreign Cc - Make: Building cryptopp; 126s processwrapper-sandbox ... (4 actions, 3 running)
+[346 / 392] Foreign Cc - Make: Building cryptopp; 127s processwrapper-sandbox ... (4 actions, 3 running)
+[350 / 392] Foreign Cc - Make: Building cryptopp; 128s processwrapper-sandbox ... (4 actions, 3 running)
+[352 / 392] Foreign Cc - Make: Building cryptopp; 129s processwrapper-sandbox ... (4 actions running)
+[354 / 392] Foreign Cc - Make: Building cryptopp; 130s processwrapper-sandbox ... (4 actions running)
+[355 / 392] Foreign Cc - Make: Building cryptopp; 132s processwrapper-sandbox ... (4 actions, 3 running)
+[355 / 392] Foreign Cc - Make: Building cryptopp; 133s processwrapper-sandbox ... (4 actions running)
+[360 / 392] Foreign Cc - Make: Building cryptopp; 135s processwrapper-sandbox ... (2 actions running)
+[361 / 392] Foreign Cc - Make: Building cryptopp; 138s processwrapper-sandbox
+[361 / 392] Foreign Cc - Make: Building cryptopp; 149s processwrapper-sandbox
+[361 / 392] Foreign Cc - Make: Building cryptopp; 179s processwrapper-sandbox
+[361 / 392] Foreign Cc - Make: Building cryptopp; 239s processwrapper-sandbox
+[362 / 392] [Scann] Compiling common/crypto/signature_utils.cpp
+[362 / 392] Compiling common/crypto/signature_utils.cpp; 1s processwrapper-sandbox ... (4 actions running)
+[363 / 392] Compiling platform/consensus/ordering/hotstuff/message_manager.cpp; 3s processwrapper-sandbox ... (4
+actions, 3 running)
+[363 / 392] Compiling platform/consensus/ordering/hotstuff/message_manager.cpp; 4s processwrapper-sandbox ... (4
+actions running)
+[364 / 392] Compiling platform/consensus/ordering/hotstuff/message_manager.cpp; 5s processwrapper-sandbox ... (4
+actions running)
+INFO: From Compiling platform/consensus/ordering/pbft/query.cpp:
+platform/consensus/ordering/pbft/query.cpp: In lambda function:
+platform/consensus/ordering/pbft/query.cpp:66:5: warning: control reaches end of non-void function [-Wreturn-type]
+   66 |     };
+      |     ^
+[365 / 392] Compiling platform/consensus/ordering/hotstuff/message_manager.cpp; 7s processwrapper-sandbox ... (4
+actions, 3 running)
+[365 / 392] Compiling platform/consensus/ordering/hotstuff/message_manager.cpp; 8s processwrapper-sandbox ... (4
+actions running)
+[368 / 392] Compiling platform/consensus/recovery/recovery.cpp; 2s processwrapper-sandbox ... (4 actions, 3 running)
+[368 / 392] Compiling platform/consensus/recovery/recovery.cpp; 4s processwrapper-sandbox ... (4 actions running)
+INFO: From Compiling platform/consensus/recovery/recovery.cpp:
+platform/consensus/recovery/recovery.cpp: In member function 'void resdb::Recovery::GetLastFile()':
+platform/consensus/recovery/recovery.cpp:150:20: warning: comparison of integer expressions of different signedness:
+'uint64_t' {aka 'long unsigned int'} and 'int64_t' {aka 'long int'} [-Wsign-compare]
+  150 |       if (m_time_s < time_s) {
+      |           ~~~~~~~~~^~~~~~~~
+platform/consensus/recovery/recovery.cpp: In member function
+'std::vector<std::unique_ptr<resdb::Recovery::RecoveryData> > resdb::Recovery::ParseData(const string&)':
+platform/consensus/recovery/recovery.cpp:307:14: warning: comparison of integer expressions of different signedness:
+'int' and 'std::__cxx11::basic_string<char>::size_type' {aka 'long unsigned int'} [-Wsign-compare]
+  307 |   while (pos < data.size()) {
+      |          ~~~~^~~~~~~~~~~~~
+platform/consensus/recovery/recovery.cpp: In member function 'std::vector<std::__cxx11::basic_string<char> >
+resdb::Recovery::ParseRawData(const string&)':
+platform/consensus/recovery/recovery.cpp:341:14: warning: comparison of integer expressions of different signedness:
+'int' and 'std::__cxx11::basic_string<char>::size_type' {aka 'long unsigned int'} [-Wsign-compare]
+  341 |   while (pos < data.size()) {
+      |          ~~~~^~~~~~~~~~~~~
+platform/consensus/recovery/recovery.cpp: In member function 'void resdb::Recovery::ReadLogsFromFiles(const string&,
+int64_t, int, std::function<void(const resdb::SystemInfoData&)>, std::function<void(std::unique_ptr<resdb::Context>,
+std::unique_ptr<resdb::Request>)>)':
+platform/consensus/recovery/recovery.cpp:537:14: warning: comparison of integer expressions of different signedness:
+'int64_t' {aka 'long int'} and 'google::protobuf::uint64' {aka 'long unsigned int'} [-Wsign-compare]
+  537 |     if (ckpt < recovery_data->request->seq() ||
+      |         ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+platform/consensus/recovery/recovery.cpp: In member function 'std::map<long unsigned int,
+std::vector<std::pair<std::unique_ptr<resdb::Context>, std::unique_ptr<resdb::Request> > > >
+resdb::Recovery::GetDataFromRecoveryFiles(uint64_t, uint64_t)':
+platform/consensus/recovery/recovery.cpp:598:24: warning: comparison of integer expressions of different signedness:
+'int64_t' {aka 'long int'} and 'uint64_t' {aka 'long unsigned int'} [-Wsign-compare]
+  598 |     } else if (max_seq < need_min_seq || min_seq > need_max_seq) {
+      |                ~~~~~~~~^~~~~~~~~~~~~~
+platform/consensus/recovery/recovery.cpp:598:50: warning: comparison of integer expressions of different signedness:
+'int64_t' {aka 'long int'} and 'uint64_t' {aka 'long unsigned int'} [-Wsign-compare]
+  598 |     } else if (max_seq < need_min_seq || min_seq > need_max_seq) {
+      |                                          ~~~~~~~~^~~~~~~~~~~~~~
+INFO: From Compiling interface/common/resdb_txn_accessor.cpp:
+interface/common/resdb_txn_accessor.cpp: In member function 'virtual absl::lts_20211102::StatusOr<long unsigned int>
+resdb::ResDBTxnAccessor::GetBlockNumbers()':
+interface/common/resdb_txn_accessor.cpp:160:8: warning: unused variable 'success' [-Wunused-variable]
+  160 |   bool success = false;
+      |        ^~~~~~~
+[370 / 392] Compiling platform/consensus/ordering/pbft/lock_free_collector_pool.cpp; 4s processwrapper-sandbox ... (4
+actions running)
+[371 / 392] Compiling platform/consensus/ordering/pbft/lock_free_collector_pool.cpp; 6s processwrapper-sandbox ... (4
+actions running)
+[372 / 392] Compiling platform/consensus/ordering/pbft/transaction_collector.cpp; 8s processwrapper-sandbox ... (4
+actions, 3 running)
+[373 / 392] Compiling platform/consensus/ordering/hotstuff/commitment.cpp; 7s processwrapper-sandbox ... (4 actions
+running)
+INFO: From Compiling platform/consensus/ordering/hotstuff/commitment.cpp:
+platform/consensus/ordering/hotstuff/commitment.cpp: In member function 'int
+resdb::hotstuff::Commitment::ProcessMessageOnPrimary(std::unique_ptr<resdb::HotStuffRequest>)':
+platform/consensus/ordering/hotstuff/commitment.cpp:318:11: warning: unused variable 'qc_view' [-Wunused-variable]
+  318 |   int64_t qc_view = request->qc().node().info().view();
+      |           ^~~~~~~
+platform/consensus/ordering/hotstuff/commitment.cpp:319:11: warning: unused variable 'sender_id' [-Wunused-variable]
+  319 |   int32_t sender_id = request->sender_id();
+      |           ^~~~~~~~~
+[374 / 392] Compiling platform/consensus/ordering/common/commitment_basic.cpp; 7s processwrapper-sandbox ... (4
+actions, 3 running)
+[375 / 392] Compiling platform/networkstrate/consensus_manager.cpp; 5s processwrapper-sandbox ... (4 actions, 3
+running)
+[375 / 392] Compiling platform/networkstrate/consensus_manager.cpp; 6s processwrapper-sandbox ... (4 actions running)
+INFO: From Compiling platform/networkstrate/consensus_manager.cpp:
+platform/networkstrate/consensus_manager.cpp: In member function 'int
+resdb::ConsensusManager::ProcessHeartBeat(std::unique_ptr<resdb::Context>, std::unique_ptr<resdb::Request>)':
+platform/networkstrate/consensus_manager.cpp:285:29: warning: comparison of integer expressions of different
+signedness: 'std::map<int, long unsigned int>::mapped_type' {aka 'long unsigned int'} and 'google::protobuf::int64'
+{aka 'long int'} [-Wsign-compare]
+  285 |       hb_[hb_info.sender()] != hb_info.hb_version()) {
+[376 / 392] Compiling platform/networkstrate/replica_communicator.cpp; 8s processwrapper-sandbox ... (4 actions, 3
+running)
+[377 / 392] Compiling platform/consensus/ordering/pbft/performance_manager.cpp; 7s processwrapper-sandbox ... (4
+actions, 3 running)
+[377 / 392] Compiling platform/consensus/ordering/pbft/performance_manager.cpp; 8s processwrapper-sandbox ... (4
+actions running)
+INFO: From Compiling platform/consensus/ordering/pbft/performance_manager.cpp:
+platform/consensus/ordering/pbft/performance_manager.cpp: In member function 'int
+resdb::PerformanceManager::ProcessResponseMsg(std::unique_ptr<resdb::Context>, std::unique_ptr<resdb::Request>)':
+platform/consensus/ordering/pbft/performance_manager.cpp:156:37: warning: comparison of integer expressions of
+different signedness: 'uint64_t' {aka 'long unsigned int'} and 'int32_t' {aka 'int'} [-Wsign-compare]
+  156 |         if (highest_seq_primary_id_ != primary_id) {
+      |             ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~
+platform/consensus/ordering/pbft/performance_manager.cpp: In member function 'int
+resdb::PerformanceManager::BatchProposeMsg()':
+platform/consensus/ordering/pbft/performance_manager.cpp:261:33: warning: comparison of integer expressions of
+different signedness: '__gnu_cxx::__alloc_traits<std::allocator<int>, int>::value_type' {aka 'int'} and 'uint32_t'
+{aka 'unsigned int'} [-Wsign-compare]
+  261 |     if (send_num_[GetPrimary()] >= config_.GetMaxProcessTxn()) {
+[378 / 392] Compiling platform/consensus/ordering/pbft/viewchange_manager.cpp; 10s processwrapper-sandbox ... (4
+actions, 3 running)
+[378 / 392] Compiling platform/consensus/ordering/pbft/viewchange_manager.cpp; 11s processwrapper-sandbox ... (4
+actions running)
+INFO: From Compiling platform/consensus/ordering/pbft/viewchange_manager.cpp:
+platform/consensus/ordering/pbft/viewchange_manager.cpp: In lambda function:
+platform/consensus/ordering/pbft/viewchange_manager.cpp:123:38: warning: comparison of integer expressions of
+different signedness: 'uint32_t' {aka 'unsigned int'} and 'int' [-Wsign-compare]
+  123 |     if (system_info_->GetPrimaryId() != replica_id) {
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~
+platform/consensus/ordering/pbft/viewchange_manager.cpp: In member function 'int
+resdb::ViewChangeManager::ProcessViewChange(std::unique_ptr<resdb::Context>, std::unique_ptr<resdb::Request>)':
+platform/consensus/ordering/pbft/viewchange_manager.cpp:370:20: warning: comparison of integer expressions of
+different signedness: 'size_t' {aka 'long unsigned int'} and 'int' [-Wsign-compare]
+  370 |   if (request_size >= config_.GetMinDataReceiveNum()) {
+      |       ~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+platform/consensus/ordering/pbft/viewchange_manager.cpp: In member function 'void
+resdb::ViewChangeManager::SendViewChangeMsg()':
+platform/consensus/ordering/pbft/viewchange_manager.cpp:465:31: warning: comparison of integer expressions of
+different signedness: 'int' and 'uint64_t' {aka 'long unsigned int'} [-Wsign-compare]
+  465 |   for (int i = min_seq + 1; i <= max_seq; ++i) {
+      |                             ~~^~~~~~~~~~
+In file included from external/boost/boost/assert.hpp:58,
+                 from external/boost/boost/beast/websocket/impl/write.hpp:29,
+                 from external/boost/boost/beast/websocket/stream.hpp:2650,
+                 from external/boost/boost/beast/websocket.hpp:18,
+                 from external/boost/boost/beast.hpp:18,
+                 from ./platform/statistic/stats.h:29,
+                 from ./platform/consensus/execution/transaction_executor.h:30,
+                 from ./platform/consensus/ordering/pbft/checkpoint_manager.h:29,
+                 from ./platform/consensus/ordering/pbft/viewchange_manager.h:27,
+                 from platform/consensus/ordering/pbft/viewchange_manager.cpp:20:
+platform/consensus/ordering/pbft/viewchange_manager.cpp:470:32: warning: comparison of integer expressions of
+different signedness: 'std::vector<resdb::RequestInfo>::size_type' {aka 'long unsigned int'} and 'int' [-Wsign-compare]
+  470 |       assert(proof_info.size() >= config_.GetMinDataReceiveNum());
+      |              ~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[379 / 392] Compiling platform/consensus/ordering/pbft/message_manager.cpp; 7s processwrapper-sandbox ... (4 actions,
+3 running)
+[379 / 392] Compiling platform/consensus/ordering/pbft/message_manager.cpp; 9s processwrapper-sandbox ... (4 actions
+running)
+[380 / 392] Compiling platform/consensus/ordering/pbft/checkpoint_manager.cpp; 9s processwrapper-sandbox ... (4
+actions, 3 running)
+[380 / 392] Compiling platform/consensus/ordering/pbft/checkpoint_manager.cpp; 11s processwrapper-sandbox ... (4
+actions running)
+INFO: From Compiling platform/consensus/ordering/pbft/checkpoint_manager.cpp:
+platform/consensus/ordering/pbft/checkpoint_manager.cpp: In member function 'void
+resdb::CheckPointManager::CheckHealthy()':
+platform/consensus/ordering/pbft/checkpoint_manager.cpp:176:21: warning: comparison of integer expressions of
+different signedness: 'int' and 'size_t' {aka 'long unsigned int'} [-Wsign-compare]
+  176 |   for (int i = 1; i <= config_.GetReplicaNum(); ++i) {
+      |                   ~~^~~~~~~~~~~~~~~~~~~~~~~~~~
+platform/consensus/ordering/pbft/checkpoint_manager.cpp:186:45: warning: comparison of integer expressions of
+different signedness: 'uint32_t' {aka 'unsigned int'} and 'int' [-Wsign-compare]
+  186 |     if (current_time - last_update_time_[i] > replica_timeout_) {
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+platform/consensus/ordering/pbft/checkpoint_manager.cpp: In member function 'void
+resdb::CheckPointManager::UpdateStableCheckPointStatus()':
+platform/consensus/ordering/pbft/checkpoint_manager.cpp:209:12: warning: unused variable 'last_committable_seq'
+[-Wunused-variable]
+  209 |   uint64_t last_committable_seq = 0;
+      |            ^~~~~~~~~~~~~~~~~~~~
+platform/consensus/ordering/pbft/checkpoint_manager.cpp: In member function 'void
+resdb::CheckPointManager::CheckStatus(uint64_t)':
+platform/consensus/ordering/pbft/checkpoint_manager.cpp:325:19: warning: comparison of integer expressions of
+different signedness: 'std::vector<long unsigned int>::size_type' {aka 'long unsigned int'} and 'int' [-Wsign-compare]
+  325 |   if (seqs.size() <= f + 1) {
+      |       ~~~~~~~~~~~~^~~~~~~~
+platform/consensus/ordering/pbft/checkpoint_manager.cpp: In member function 'void
+resdb::CheckPointManager::CheckSysStatus()':
+platform/consensus/ordering/pbft/checkpoint_manager.cpp:353:46: warning: comparison of integer expressions of
+different signedness: 'int' and 'uint32_t' {aka 'unsigned int'} [-Wsign-compare]
+  353 |   if (current_primary > 0 && current_primary != sys_info_->GetPrimaryId() &&
+      |                              ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+platform/consensus/ordering/pbft/checkpoint_manager.cpp: In member function 'void
+resdb::CheckPointManager::UpdateCheckPointStatus()':
+platform/consensus/ordering/pbft/checkpoint_manager.cpp:436:10: warning: unused variable 'is_recovery'
+[-Wunused-variable]
+  436 |     bool is_recovery = request->is_recovery();
+      |          ^~~~~~~~~~~
+platform/consensus/ordering/pbft/checkpoint_manager.cpp: In member function 'void
+resdb::CheckPointManager::ClearCommittedStatus(uint64_t)':
+platform/consensus/ordering/pbft/checkpoint_manager.cpp:546:42: warning: comparison of integer expressions of
+different signedness: 'const int' and 'uint64_t' {aka 'long unsigned int'} [-Wsign-compare]
+  546 |     if (committed_status_.begin()->first <= seq) {
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+[381 / 392] Compiling service/utils/server_factory.cpp; 8s processwrapper-sandbox ... (4 actions, 3 running)
+[381 / 392] Compiling service/utils/server_factory.cpp; 9s processwrapper-sandbox ... (4 actions running)
+[382 / 392] Compiling platform/consensus/ordering/pbft/consensus_manager_pbft.cpp; 9s processwrapper-sandbox ... (4
+actions running)
+INFO: From Compiling platform/consensus/ordering/pbft/consensus_manager_pbft.cpp:
+In file included from platform/consensus/ordering/pbft/consensus_manager_pbft.cpp:20:
+./platform/consensus/ordering/pbft/consensus_manager_pbft.h: In constructor
+'resdb::ConsensusManagerPBFT::ConsensusManagerPBFT(const resdb::ResDBConfig&,
+std::unique_ptr<resdb::TransactionManager>, std::unique_ptr<resdb::CustomQuery>)':
+./platform/consensus/ordering/pbft/consensus_manager_pbft.h:87:29: warning: 'resdb::ConsensusManagerPBFT::recovery_'
+will be initialized after [-Wreorder]
+   87 |   std::unique_ptr<Recovery> recovery_;
+      |                             ^~~~~~~~~
+./platform/consensus/ordering/pbft/consensus_manager_pbft.h:83:26: warning:   'std::unique_ptr<resdb::Query>
+resdb::ConsensusManagerPBFT::query_' [-Wreorder]
+   83 |   std::unique_ptr<Query> query_;
+      |                          ^~~~~~
+platform/consensus/ordering/pbft/consensus_manager_pbft.cpp:29:1: warning:   when initialized here [-Wreorder]
+   29 | ConsensusManagerPBFT::ConsensusManagerPBFT(
+      | ^~~~~~~~~~~~~~~~~~~~
+platform/consensus/ordering/pbft/consensus_manager_pbft.cpp: In member function 'void
+resdb::ConsensusManagerPBFT::RemoteRecoveryProcess()':
+platform/consensus/ordering/pbft/consensus_manager_pbft.cpp:328:12: warning: unused variable 'last_recovery'
+[-Wunused-variable]
+  328 |   uint64_t last_recovery = 0;
+      |            ^~~~~~~~~~~~~
+[383 / 392] Compiling platform/consensus/ordering/pbft/commitment.cpp; 7s processwrapper-sandbox ... (4 actions, 3
+running)
+[383 / 392] Compiling platform/consensus/ordering/pbft/commitment.cpp; 9s processwrapper-sandbox ... (4 actions
+running)
+INFO: From Compiling platform/consensus/ordering/pbft/commitment.cpp:
+platform/consensus/ordering/pbft/commitment.cpp: In member function 'virtual int
+resdb::Commitment::ProcessProposeMsg(std::unique_ptr<resdb::Context>, std::unique_ptr<resdb::Request>)':
+platform/consensus/ordering/pbft/commitment.cpp:162:24: warning: comparison of integer expressions of different
+signedness: 'google::protobuf::uint64' {aka 'long unsigned int'} and 'int64_t' {aka 'long int'} [-Wsign-compare]
+  162 |         request->seq() == message_manager_->GetNextSeq()) {
+      |         ~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+platform/consensus/ordering/pbft/commitment.cpp:168:46: warning: comparison of integer expressions of different
+signedness: 'const long unsigned int' and 'int64_t' {aka 'long int'} [-Wsign-compare]
+  168 |         if (pending_recovery_.begin()->first <=
+      |             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+  169 |             message_manager_->GetNextSeq()) {
+      |             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+platform/consensus/ordering/pbft/commitment.cpp:170:48: warning: comparison of integer expressions of different
+signedness: 'const long unsigned int' and 'int64_t' {aka 'long int'} [-Wsign-compare]
+  170 |           if (pending_recovery_.begin()->first ==
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+  171 |               message_manager_->GetNextSeq()) {
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+platform/consensus/ordering/pbft/commitment.cpp:183:31: warning: comparison of integer expressions of different
+signedness: 'google::protobuf::uint64' {aka 'long unsigned int'} and 'int64_t' {aka 'long int'} [-Wsign-compare]
+  183 |     } else if (request->seq() > message_manager_->GetNextSeq()) {
+      |                ~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+platform/consensus/ordering/pbft/commitment.cpp: In member function 'virtual int
+resdb::Commitment::ProcessCommitMsg(std::unique_ptr<resdb::Context>, std::unique_ptr<resdb::Request>)':
+platform/consensus/ordering/pbft/commitment.cpp:305:12: warning: unused variable 'seq' [-Wunused-variable]
+  305 |   uint64_t seq = request->seq();
+      |            ^~~
+[384 / 392] Compiling platform/consensus/ordering/pbft/response_manager.cpp; 8s processwrapper-sandbox ... (4 actions,
+3 running)
+[384 / 392] Compiling platform/consensus/ordering/pbft/response_manager.cpp; 9s processwrapper-sandbox ... (4 actions
+running)
+INFO: From Compiling platform/consensus/ordering/pbft/response_manager.cpp:
+platform/consensus/ordering/pbft/response_manager.cpp: In member function 'int
+resdb::ResponseManager::BatchProposeMsg()':
+platform/consensus/ordering/pbft/response_manager.cpp:266:19: warning: comparison of integer expressions of different
+signedness: 'std::__atomic_base<int>::__int_type' {aka 'int'} and 'uint32_t' {aka 'unsigned int'} [-Wsign-compare]
+  266 |     if (send_num_ > config_.GetMaxProcessTxn()) {
+      |         ~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[385 / 392] Compiling platform/consensus/ordering/common/response_manager.cpp; 8s processwrapper-sandbox ... (4
+actions, 3 running)
+[386 / 392] Compiling benchmark/protocols/hotstuff/kv_server_performance.cpp; 7s processwrapper-sandbox ... (4
+actions, 3 running)
+[386 / 392] Compiling benchmark/protocols/hotstuff/kv_server_performance.cpp; 8s processwrapper-sandbox ... (4 actions
+running)
+[387 / 392] Compiling platform/consensus/ordering/hotstuff/consensus.cpp; 7s processwrapper-sandbox ... (4 actions, 3
+running)
+[387 / 392] Compiling platform/consensus/ordering/hotstuff/consensus.cpp; 8s processwrapper-sandbox ... (4 actions
+running)
+[388 / 392] Compiling platform/consensus/ordering/hotstuff/consensus.cpp; 9s processwrapper-sandbox ... (3 actions
+running)
+[390 / 392] Compiling platform/consensus/ordering/common/performance_manager.cpp; 8s processwrapper-sandbox
+INFO: From Compiling platform/consensus/ordering/common/performance_manager.cpp:
+platform/consensus/ordering/common/performance_manager.cpp: In member function 'int
+resdb::common::PerformanceManager::BatchProposeMsg()':
+platform/consensus/ordering/common/performance_manager.cpp:181:19: warning: comparison of integer expressions of
+different signedness: 'std::__atomic_base<int>::__int_type' {aka 'int'} and 'uint32_t' {aka 'unsigned int'}
+[-Wsign-compare]
+  181 |     if (send_num_ > config_.GetMaxProcessTxn()) {
+      |         ~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Target //benchmark/protocols/hotstuff:kv_server_performance up-to-date:
+  bazel-bin/benchmark/protocols/hotstuff/kv_server_performance
+INFO: Elapsed time: 453.717s, Critical Path: 319.53s
+INFO: 392 processes: 47 internal, 345 processwrapper-sandbox.
+INFO: Build completed successfully, 392 total actions

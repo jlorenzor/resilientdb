@@ -2,13 +2,14 @@
 #include <cstdlib>
 #include <memory>
 
-#include "chain/state/chain_state.h"
+#include "chain/storage/memory_db.h"
 #include "executor/kv/kv_executor.h"
 #include "platform/config/resdb_config_utils.h"
 #include "platform/consensus/ordering/hotstuff/consensus.h"
 #include "platform/networkstrate/service_network.h"
 
 using namespace resdb;
+using namespace resdb::storage;
 
 void ShowUsage() {
   printf("<config> <private_key> <cert_file> [logging_dir]\n");
@@ -27,7 +28,7 @@ int main(int argc, char** argv) {
       GenerateResDBConfig(config_file, private_key_file, cert_file);
 
   auto consensus = std::make_unique<hotstuff::Consensus>(
-      *config, std::make_unique<KVExecutor>(std::make_unique<ChainState>()));
+      *config, std::make_unique<KVExecutor>(std::make_unique<MemoryDB>()));
 
   auto server =
       std::make_unique<ServiceNetwork>(*config, std::move(consensus));

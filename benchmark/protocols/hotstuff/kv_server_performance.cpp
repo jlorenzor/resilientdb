@@ -27,7 +27,7 @@
 #include <memory>
 #include <string>
 
-#include "chain/state/chain_state.h"
+#include "chain/storage/memory_db.h"
 #include "executor/kv/kv_executor.h"
 #include "platform/config/resdb_config_utils.h"
 #include "platform/consensus/ordering/hotstuff/consensus.h"
@@ -36,6 +36,7 @@
 #include "proto/kv/kv.pb.h"
 
 using namespace resdb;
+using namespace resdb::storage;
 
 void ShowUsage() {
   printf("<config> <private_key> <cert_file> [logging_dir]\n");
@@ -68,7 +69,7 @@ int main(int argc, char** argv) {
   config->RunningPerformance(true);
 
   auto performance_consensus = std::make_unique<hotstuff::Consensus>(
-      *config, std::make_unique<KVExecutor>(std::make_unique<ChainState>()));
+      *config, std::make_unique<KVExecutor>(std::make_unique<MemoryDB>()));
   performance_consensus->SetupPerformanceDataFunc([]() {
     KVRequest request;
     request.set_cmd(KVRequest::SET);

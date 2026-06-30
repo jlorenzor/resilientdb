@@ -1,0 +1,33 @@
+docker : Starting local Bazel server and connecting to it...
+En línea: 2 Carácter: 160
++ ... | Out-Null; docker run --name hs1-build-v2145-consensus -v "C:\Users\ ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Starting local ...ecting to it...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+Loading:
+Loading: 0 packages loaded
+Analyzing: target //platform/consensus/ordering/hotstuff:consensus (1 packages loaded, 0 targets configured)
+Analyzing: target //platform/consensus/ordering/hotstuff:consensus (39 packages loaded, 145 targets configured)
+Analyzing: target //platform/consensus/ordering/hotstuff:consensus (95 packages loaded, 1921 targets configured)
+Analyzing: target //platform/consensus/ordering/hotstuff:consensus (105 packages loaded, 4140 targets configured)
+INFO: Analyzed target //platform/consensus/ordering/hotstuff:consensus (106 packages loaded, 9663 targets configured).
+INFO: Found 1 target...
+[0 / 190] [Prepa] BazelWorkspaceStatusAction stable-status.txt
+[126 / 233] [Prepa] Writing file platform/consensus/ordering/hotstuff/libconsensus.a-2.params
+[230 / 234] Compiling platform/networkstrate/consensus_manager.cpp; 0s processwrapper-sandbox ... (2 actions running)
+[231 / 234] Compiling platform/networkstrate/consensus_manager.cpp; 8s processwrapper-sandbox ... (3 actions, 1
+running)
+INFO: From Compiling platform/networkstrate/consensus_manager.cpp:
+platform/networkstrate/consensus_manager.cpp: In member function 'int
+resdb::ConsensusManager::ProcessHeartBeat(std::unique_ptr<resdb::Context>, std::unique_ptr<resdb::Request>)':
+platform/networkstrate/consensus_manager.cpp:285:29: warning: comparison of integer expressions of different
+signedness: 'std::map<int, long unsigned int>::mapped_type' {aka 'long unsigned int'} and 'google::protobuf::int64'
+{aka 'long int'} [-Wsign-compare]
+  285 |       hb_[hb_info.sender()] != hb_info.hb_version()) {
+Target //platform/consensus/ordering/hotstuff:consensus up-to-date:
+  bazel-bin/platform/consensus/ordering/hotstuff/libconsensus.a
+  bazel-bin/platform/consensus/ordering/hotstuff/libconsensus.so
+INFO: Elapsed time: 18.247s, Critical Path: 9.84s
+INFO: 7 processes: 3 internal, 4 processwrapper-sandbox.
+INFO: Build completed successfully, 7 total actions

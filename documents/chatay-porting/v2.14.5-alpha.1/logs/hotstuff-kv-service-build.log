@@ -1,0 +1,23 @@
+docker : Starting local Bazel server and connecting to it...
+En línea: 2 Carácter: 61
++ ... | Out-Null; docker run --name hs1-build-v2145-kv-service -v "C:\Users ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Starting local ...ecting to it...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+Loading:
+Loading: 0 packages loaded
+Analyzing: target //benchmark/protocols/hotstuff:kv_service (1 packages loaded, 0 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_service (82 packages loaded, 387 targets configured)
+Analyzing: target //benchmark/protocols/hotstuff:kv_service (112 packages loaded, 3476 targets configured)
+INFO: Analyzed target //benchmark/protocols/hotstuff:kv_service (113 packages loaded, 9782 targets configured).
+INFO: Found 1 target...
+[1 / 5] [Prepa] BazelWorkspaceStatusAction stable-status.txt
+[68 / 371] [Prepa] Writing file benchmark/protocols/hotstuff/kv_service-2.params
+[368 / 371] Compiling chain/storage/memory_db.cpp; 0s processwrapper-sandbox ... (2 actions running)
+[368 / 371] Compiling chain/storage/memory_db.cpp; 16s processwrapper-sandbox ... (2 actions running)
+Target //benchmark/protocols/hotstuff:kv_service up-to-date:
+  bazel-bin/benchmark/protocols/hotstuff/kv_service
+INFO: Elapsed time: 25.924s, Critical Path: 18.46s
+INFO: 5 processes: 2 internal, 3 processwrapper-sandbox.
+INFO: Build completed successfully, 5 total actions
