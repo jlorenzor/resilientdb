@@ -2,7 +2,7 @@
 
 ## Status
 
-Alpha prerequisite for warm-cluster benchmarking.
+Closed as an alpha prerequisite for warm-cluster benchmarking.
 
 ## Purpose
 
@@ -19,6 +19,15 @@ pulls DuckDB into the build.
 
 ```txt
 chatay-resilientdb-pbft:v2.18.3-alpha.1
+```
+
+## Built Image
+
+```txt
+imageId=sha256:47c138d18e5061c6eb7461e876f2cc8bbd6ca8af29bf6ed18376732da059aa4a
+sizeBytes=1070001534
+sizeApprox=1.07GB
+contentCheck=pbft-runtime-content-ok
 ```
 
 ## Claim Boundary

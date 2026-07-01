@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "chatay-consensus-runtime-image-summary-v1",
+  "image": "chatay-resilientdb-pbft:v2.18.3-alpha.1",
+  "imageId": "sha256:47c138d18e5061c6eb7461e876f2cc8bbd6ca8af29bf6ed18376732da059aa4a",
+  "sizeBytes": 1070001534,
+  "baseImage": "chatay-resilientdb-pbft:runtime-v2.13.20-alpha.1",
+  "sourceCommit": "777c1ce8bbb7166ec47a7d52afdf4b207a2b6b10",
+  "sourceBranch": "consensus/pbft-runtime-normalization-v2.18.3-alpha.1",
+  "labels": {"org.chatay.base_image":"chatay-resilientdb-pbft:runtime-v2.13.20-alpha.1","org.chatay.consensus":"pbft","org.chatay.image_role":"runtime-release","org.chatay.semver":"v2.18.3-alpha.1","org.chatay.source_branch":"consensus/pbft-runtime-normalization-v2.18.3-alpha.1","org.chatay.source_commit":"777c1ce8bbb7166ec47a7d52afdf4b207a2b6b10","org.chatay.source_image":"chatay-resilientdb-pbft:runtime-v2.13.20-alpha.1"}
+}

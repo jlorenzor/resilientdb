@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "chatay-consensus-runtime-image-v2",
+  "protocol": "pbft",
+  "semver": "v2.18.3-alpha.1",
+  "sourceCommit": "777c1ce8bbb7166ec47a7d52afdf4b207a2b6b10",
+  "sourceBranch": "consensus/pbft-runtime-normalization-v2.18.3-alpha.1",
+  "baseImage": "chatay-resilientdb-pbft:runtime-v2.13.20-alpha.1",
+  "runtimeWorkdir": "/opt/resilientdb-pbft",
+  "binaries": [
+    "kv_service",
+    "kv_service_tools",
+    "certificate_tools",
+    "key_generator_tools",
+    "generate_region_config"
+  ]
+}

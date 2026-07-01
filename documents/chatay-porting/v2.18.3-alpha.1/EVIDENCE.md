@@ -47,3 +47,24 @@ open //./pipe/docker_engine: The system cannot find the file specified
 
 The PBFT build path has been corrected to avoid DuckDB, but the image is not
 closed until Docker is healthy and the corrected script builds successfully.
+
+## Closed Result
+
+Docker was restarted and the corrected lightweight path succeeded:
+
+```txt
+image=chatay-resilientdb-pbft:v2.18.3-alpha.1
+imageId=sha256:47c138d18e5061c6eb7461e876f2cc8bbd6ca8af29bf6ed18376732da059aa4a
+sizeBytes=1070001534
+contentCheck=pbft-runtime-content-ok
+```
+
+The runtime image includes:
+
+```txt
+/opt/resilientdb-pbft/bin/kv_service
+/opt/resilientdb-pbft/bin/kv_service_tools
+/opt/resilientdb-pbft/bin/certificate_tools
+/opt/resilientdb-pbft/bin/key_generator_tools
+/opt/resilientdb-pbft/bin/generate_region_config
+```

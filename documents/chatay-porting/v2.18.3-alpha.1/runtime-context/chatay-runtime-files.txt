@@ -1,0 +1,5 @@
+bin/certificate_tools 6387816 bytes
+bin/generate_region_config 20898 bytes
+bin/key_generator_tools 5242136 bytes
+bin/kv_service 10199280 bytes
+bin/kv_service_tools 7618992 bytes
