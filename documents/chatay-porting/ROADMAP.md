@@ -64,13 +64,13 @@ Do not use personal or tool-specific prefixes.
 | `v2.18.3-beta.1` | Closed | Run local warm-cluster PBFT vs HS1 vs HS2 benchmark. |
 | `v2.18.4-beta.1` | Closed | Run cold-start benchmark separated by protocol. |
 | `v2.18.5-rc.1` | Closed | Extract real no-fault phase traces and mark view-change/fault traces as not executed. |
-| `v2.18.6-rc.1` | Next | Write local comparative report with explicit limits. |
-| `v2.19.0` | Pending | Freeze stable local PBFT vs HS1 vs HS2 baseline. |
+| `v2.18.6-rc.1` | Closed | Write local comparative report with explicit limits. |
+| `v2.19.0` | Next | Freeze stable local PBFT vs HS1 vs HS2 baseline. |
 
 ## Current Gate
 
-The current gate is `v2.18.6-rc.1`. `v2.18.5-rc.1` extracted local no-fault
-runtime traces with frozen images:
+The current gate is `v2.19.0`. `v2.18.6-rc.1` consolidated the local
+comparative report for the frozen images:
 
 ```txt
 PBFT      chatay-resilientdb-pbft:v2.18.3-alpha.1               ~1070 MB
@@ -93,10 +93,10 @@ returned value == written value
 logs under documents/chatay-porting/<semver>/logs
 ```
 
-The remaining local benchmark work is to write the local comparative report.
-Warm-cluster, cold-start and no-fault trace extraction are now closed for the
-frozen local images, but they are not yet evidence for heterogeneous-network
-behavior.
+The remaining local benchmark work is to freeze the stable local baseline.
+Warm-cluster, cold-start, no-fault trace extraction and the local comparative
+report are now closed for the frozen local images, but they are not yet evidence
+for heterogeneous-network behavior.
 
 ## Claim Boundary
 
