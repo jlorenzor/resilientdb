@@ -60,7 +60,8 @@ Do not use personal or tool-specific prefixes.
 | `v2.18.0-alpha.1` | Closed | Build and freeze a clean HS2 runtime image. |
 | `v2.18.1-alpha.1` | Closed | Lock PBFT, HS1 and HS2 images for one comparable run. |
 | `v2.18.2-alpha.1` | Closed | Implement segmented runner schema: image-check, build, cold-start, warm-cluster and phase trace. |
-| `v2.18.3-beta.1` | Next | Run local warm-cluster PBFT vs HS1 vs HS2 benchmark. |
+| `v2.18.3-alpha.1` | In progress | Normalize PBFT runtime image with the same executable layout used by HS1 and HS2. |
+| `v2.18.3-beta.1` | Pending | Run local warm-cluster PBFT vs HS1 vs HS2 benchmark. |
 | `v2.18.4-beta.1` | Pending | Run cold-start benchmark separated by protocol. |
 | `v2.18.5-rc.1` | Pending | Capture real phase traces: proposal, vote, QC, commit, execution and view-change. |
 | `v2.18.6-rc.1` | Pending | Write local comparative report with explicit limits. |
@@ -68,9 +69,10 @@ Do not use personal or tool-specific prefixes.
 
 ## Current Gate
 
-The current gate is `v2.18.3-beta.1`. `v2.18.2-alpha.1` created the segmented
+The current gate is `v2.18.3-alpha.1`. `v2.18.2-alpha.1` created the segmented
 runner contract and executed the image-check segment for the comparable runtime
-image set:
+image set, but `v2.18.3-alpha.1` found that the PBFT image must be normalized
+before a fair warm-cluster benchmark:
 
 ```txt
 PBFT      chatay-resilientdb-pbft:runtime-v2.13.20-alpha.1      ~1011 MB
@@ -78,9 +80,10 @@ HS1/PR100 chatay-resilientdb-hs1-pr100:v2.14.10-beta.1          ~976 MB
 HS2       chatay-resilientdb-hs2:v2.18.0-alpha.1                ~976 MB
 ```
 
-Older build/toolchain images remain excluded from benchmark timing. The
-remaining segments are explicitly separated as build, cold-start, warm-cluster
-and phase-trace.
+Older build/toolchain images remain excluded from benchmark timing. The PBFT
+runtime normalization must close before `v2.18.3-beta.1` can produce a
+warm-cluster comparison. The remaining benchmark segments stay explicitly
+separated as build, cold-start, warm-cluster and phase-trace.
 
 The preserved runtime contract remains:
 

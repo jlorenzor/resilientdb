@@ -1,0 +1,4 @@
+*
+!.gitignore
+!chatay-runtime-manifest.json
+!chatay-runtime-files.txt
