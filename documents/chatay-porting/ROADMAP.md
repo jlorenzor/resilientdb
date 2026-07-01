@@ -61,16 +61,16 @@ Do not use personal or tool-specific prefixes.
 | `v2.18.1-alpha.1` | Closed | Lock PBFT, HS1 and HS2 images for one comparable run. |
 | `v2.18.2-alpha.1` | Closed | Implement segmented runner schema: image-check, build, cold-start, warm-cluster and phase trace. |
 | `v2.18.3-alpha.1` | Closed | Normalize PBFT runtime image with the same executable layout used by HS1 and HS2. |
-| `v2.18.3-beta.1` | Next | Run local warm-cluster PBFT vs HS1 vs HS2 benchmark. |
-| `v2.18.4-beta.1` | Pending | Run cold-start benchmark separated by protocol. |
+| `v2.18.3-beta.1` | Closed | Run local warm-cluster PBFT vs HS1 vs HS2 benchmark. |
+| `v2.18.4-beta.1` | Next | Run cold-start benchmark separated by protocol. |
 | `v2.18.5-rc.1` | Pending | Capture real phase traces: proposal, vote, QC, commit, execution and view-change. |
 | `v2.18.6-rc.1` | Pending | Write local comparative report with explicit limits. |
 | `v2.19.0` | Pending | Freeze stable local PBFT vs HS1 vs HS2 baseline. |
 
 ## Current Gate
 
-The current gate is `v2.18.3-beta.1`. `v2.18.3-alpha.1` normalized the PBFT
-runtime image before a fair warm-cluster benchmark:
+The current gate is `v2.18.4-beta.1`. `v2.18.3-beta.1` closed the local
+runtime warm-cluster gate with frozen images:
 
 ```txt
 PBFT      chatay-resilientdb-pbft:v2.18.3-alpha.1               ~1070 MB
@@ -93,9 +93,9 @@ returned value == written value
 logs under documents/chatay-porting/<semver>/logs
 ```
 
-Benchmarking remains blocked until the PBFT, HS1 and HS2 protocol images are
-locked together and the benchmark harness separates build, cold-start and
-warm-cluster operation timing.
+The remaining local benchmark work is to separate cold-start timing and capture
+phase traces. Warm-cluster validation is now closed for the frozen local images,
+but it is not yet evidence for heterogeneous-network behavior.
 
 ## Claim Boundary
 

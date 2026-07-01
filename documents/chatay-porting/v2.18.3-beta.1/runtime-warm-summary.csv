@@ -1,0 +1,4 @@
+semver,runId,protocol,image,status,durationMs,imageId,sizeBytes,basePort,operationCount,passedOperations,readyDurationMs,operationsDurationMs,notes
+v2.18.3-beta.1,20260701T020837Z-runtime-warm,pbft,chatay-resilientdb-pbft:v2.18.3-alpha.1,PASSED,17307,sha256:47c138d18e5061c6eb7461e876f2cc8bbd6ca8af29bf6ed18376732da059aa4a,1070001534,31000,10,10,9,12040,runtime warm-cluster passed
+v2.18.3-beta.1,20260701T020837Z-runtime-warm,hs1-pr100,chatay-resilientdb-hs1-pr100:v2.14.10-beta.1,PASSED,31382,sha256:685173b06c9274d1e6a63327143001a030915853d10daa5fbaf843b3bc2a5717,976420827,31100,10,10,13110,12722,runtime warm-cluster passed
+v2.18.3-beta.1,20260701T020837Z-runtime-warm,hs2,chatay-resilientdb-hs2:v2.18.0-alpha.1,PASSED,17048,sha256:87d206e1a2ad9bc0d7af662479fa45e77da5f0c82238b67249450a6576bd1224,976114081,31200,10,10,14,11621,runtime warm-cluster passed
